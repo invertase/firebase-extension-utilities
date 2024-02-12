@@ -28,11 +28,10 @@ export const myFunction = functions.firestore
   .onWrite(process);
 ```
 
-TODO:
+### TODO:
 
 - change signature of above, process function should be main argument and then should pass `options` which include optional id etc.
 
-Used in:
+### Used in:
 
-- PaLM extensions
-- Gemini extensions
+(nda)
