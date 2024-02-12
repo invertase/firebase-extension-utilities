@@ -1,0 +1,16 @@
+{
+  "emulators": {
+    "ui": {
+      "enabled": true
+    },
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json",
+    "host": "test-firestore.sandbox.googleapis.com"
+  }
+}
