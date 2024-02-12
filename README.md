@@ -8,7 +8,7 @@ This provides a processor class which you can pass to your firestore onWrite cal
 import {
   FirestoreOnWriteProcessor,
   FirestoreOnWriteProcess,
-} from "../firestore-onwrite-processor";
+} from "firebase-extension-utilities/firestore-onwrite-processor";
 
 const myProcess = new FirestoreOnWriteProcess({
   id: "myProcessId",
