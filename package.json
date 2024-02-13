@@ -14,7 +14,7 @@
     "format": "prettier --write \"**/*.{js,md,yml,ts,json,yaml}\""
   },
   "keywords": [],
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "firebase-functions": "^4.7.0"
   },
