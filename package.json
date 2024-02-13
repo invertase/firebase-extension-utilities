@@ -1,8 +1,9 @@
 {
-  "name": "firebase-extension-utilities",
+  "name": "@invertase/firebase-extension-utilities",
   "author": "Jacob Cable",
   "version": "0.0.1",
   "description": "",
+  "scope": "invertase",
   "main": "lib/index.js",
   "scripts": {
     "prepare": "npm run build",
@@ -27,8 +28,5 @@
     "prettier": "^3.2.5",
     "rimraf": "^5.0.5",
     "ts-jest": "^29.1.2"
-  },
-  "exports": {
-    "firestore-onwrite-processor": "./lib/firestore-onwrite-processor.js"
   }
 }
