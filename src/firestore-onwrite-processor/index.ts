@@ -35,7 +35,7 @@ export class FirestoreOnWriteProcessor<
 
   private async writeStartEvent(
     change: Change,
-    processesToRun: Process<TInput, TOutput>[],
+    processesToRun: Process<TInput, TOutput>[]
   ) {
     const updateTime = now();
 
@@ -62,7 +62,7 @@ export class FirestoreOnWriteProcessor<
     change: Change,
     output: TOutput,
     completedProcesses: Process<TInput, TOutput>[],
-    failedProcesses: Process<TInput, TOutput>[],
+    failedProcesses: Process<TInput, TOutput>[]
   ) {
     const updateTime = now();
 
@@ -153,12 +153,17 @@ export class FirestoreOnWriteProcessor<
         };
       } catch (e) {
         failedProcesses.push(process);
+        if (process.errorFn) {
+          await process.errorFn(e);
+        } else if (this.errorFn) {
+          await this.errorFn(e);
+        }
       }
       await this.writeCompletionEvent(
         change,
         finalOutput,
         completedProcesses,
-        failedProcesses,
+        failedProcesses
       );
     }
   }
