@@ -30,6 +30,3 @@ export const myFunction = functions.firestore
   .onWrite(myProcessor.run);
 ```
 
-### Used in:
-
-(nda)
