@@ -10,7 +10,6 @@
   },
   "firestore": {
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json",
-    "host": "test-firestore.sandbox.googleapis.com"
+    "indexes": "firestore.indexes.json"
   }
 }

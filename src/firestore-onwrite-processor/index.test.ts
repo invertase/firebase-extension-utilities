@@ -79,6 +79,77 @@ describe("SingleFieldProcessor", () => {
     jest.clearAllMocks();
   });
 
+  test("should do noop on empty dependency array", async () => {
+    const processFn = ({ input }: Record<string, FirestoreField>) => {
+      return { output: "foo" };
+    };
+    const process = new Process(processFn, {
+      id: "test",
+      fieldDependencyArray: [],
+    });
+
+    const processor = new FirestoreOnWriteProcessor({
+      processes: [process],
+    });
+
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
+    const data = {
+      input: "test",
+    };
+
+    const ref = await admin.firestore().collection(collectionName).add(data);
+
+    await simulateFunctionTriggered(wrappedGenerateMessage)(ref);
+
+    expect(firestoreObserver).toHaveBeenCalledTimes(1);
+  });
+
+  test("should do noop on should not process array", async () => {
+    const processFn = ({ input }: Record<string, FirestoreField>) => {
+      return { output: "foo" };
+    };
+    const process = new Process(processFn, {
+      id: "test",
+      fieldDependencyArray: ["test"],
+      shouldProcess: () => false,
+    });
+
+    const processor = new FirestoreOnWriteProcessor({
+      processes: [process],
+    });
+
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
+    const data = {
+      input: "test",
+    };
+
+    const ref = await admin.firestore().collection(collectionName).add(data);
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(true);
+      }, 1000);
+    });
+
+    await simulateFunctionTriggered(wrappedGenerateMessage)(ref);
+
+    expect(firestoreObserver).toHaveBeenCalledTimes(1);
+  });
+
   test("should run when not given order field", async () => {
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
@@ -99,10 +170,6 @@ describe("SingleFieldProcessor", () => {
     const firestoreCallData = firestoreObserver.mock.calls.map(
       (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data()
     );
-
-    // for (const call of firestoreCallData) {
-    //   console.log(call);
-    // }
 
     expect(firestoreCallData[0]).toEqual({ input: "test" });
     expect(firestoreCallData[1]).toEqual({
@@ -138,6 +205,7 @@ describe("SingleFieldProcessor", () => {
       firestoreCallData[2].status.test.completeTime
     );
   });
+
   test("should run when given order field", async () => {
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
@@ -199,7 +267,7 @@ describe("SingleFieldProcessor", () => {
     );
   });
 
-  test("should run multiple processes fine", async () => {
+  test("should run multiple processes fine on same field", async () => {
     const firstProcessFn = ({ input }: Record<string, FirestoreField>) => {
       return { firstOutput: "processed by first process" };
     };
@@ -273,6 +341,252 @@ describe("SingleFieldProcessor", () => {
     expect(updatedData!.status.test.state).toEqual("COMPLETED");
     expect(updatedData!.status.secondTest.state).toEqual("COMPLETED");
   });
+
+  test("should run multiple processes on different field", async () => {
+    const firstProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      return { firstOutput: "processed by first process" };
+    };
+
+    // Add a second process function
+    const secondProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      return { secondOutput: "processed by second process" };
+    };
+
+    const processes = [
+      new Process(firstProcessFn, {
+        id: "test",
+        fieldDependencyArray: ["input1"],
+      }),
+      new Process(secondProcessFn, {
+        id: "secondTest",
+        fieldDependencyArray: ["input2"],
+      }),
+    ];
+
+    const processor = new FirestoreOnWriteProcessor({
+      processes: processes,
+    });
+
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
+    // Define data that triggers both processes
+    const data = {
+      input1: "test",
+      input2: "test",
+    };
+
+    // Add the data to Firestore
+    const ref = await admin.firestore().collection(collectionName).add(data);
+
+    // Trigger the wrapped function
+    await simulateFunctionTriggered(wrappedGenerateMessage)(ref);
+
+    // Expect the firestore observer to be called a specific number of times
+
+    const calls = firestoreObserver.mock.calls;
+
+    // TODO we should wait-for-expect here or something.
+
+    expect(firestoreObserver).toHaveBeenCalledTimes(3);
+
+    // // Fetch the updated document and verify outputs of both processes
+    const updatedDoc = await admin
+      .firestore()
+      .collection(collectionName)
+      .doc(ref.id)
+      .get();
+    const updatedData = updatedDoc.data();
+    expect(updatedData).toBeDefined();
+
+    expect(updatedData).toHaveProperty(
+      "firstOutput",
+      "processed by first process"
+    ); // Output from the first process
+    expect(updatedData).toHaveProperty(
+      "secondOutput",
+      "processed by second process"
+    ); // Output from the second process
+
+    // // Verify status updates for both processes
+    expect(updatedData!.status.test.state).toEqual("COMPLETED");
+    expect(updatedData!.status.secondTest.state).toEqual("COMPLETED");
+  });
+
+  test("should only run one process if only that field is present", async () => {
+    const firstProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      return { firstOutput: "processed by first process" };
+    };
+
+    // Add a second process function
+    const secondProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      return { secondOutput: "processed by second process" };
+    };
+
+    const processes = [
+      new Process(firstProcessFn, {
+        id: "test",
+        fieldDependencyArray: ["input1"],
+      }),
+      new Process(secondProcessFn, {
+        id: "secondTest",
+        fieldDependencyArray: ["input2"],
+      }),
+    ];
+
+    const processor = new FirestoreOnWriteProcessor({
+      processes: processes,
+    });
+
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
+    // Define data that triggers both processes
+    const data = {
+      input1: "test",
+    };
+
+    // Add the data to Firestore
+    const ref = await admin.firestore().collection(collectionName).add(data);
+
+    // Trigger the wrapped function
+    await simulateFunctionTriggered(wrappedGenerateMessage)(ref);
+
+    // Expect the firestore observer to be called a specific number of times
+
+    // TODO we should wait-for-expect here or something.
+
+    expect(firestoreObserver).toHaveBeenCalledTimes(3);
+
+    // // Fetch the updated document and verify outputs of both processes
+    const updatedDoc = await admin
+      .firestore()
+      .collection(collectionName)
+      .doc(ref.id)
+      .get();
+    const updatedData = updatedDoc.data();
+    expect(updatedData).toBeDefined();
+    expect(updatedData).toHaveProperty(
+      "firstOutput",
+      "processed by first process"
+    );
+    expect(updatedData).not.toHaveProperty("secondOutput");
+    expect(updatedData!.status).not.toHaveProperty("secondTest");
+    // // Verify status updates for both processes
+    expect(updatedData!.status.test.state).toEqual("COMPLETED");
+  });
+
+  test("should gracefully handle an errored process", async () => {
+    const processFn = () => {
+      throw new Error("Test Error");
+    };
+    const process = new Process(processFn, {
+      id: "testProcess",
+      fieldDependencyArray: ["input"],
+    });
+
+    const processor = new FirestoreOnWriteProcessor({
+      processes: [process],
+    });
+
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
+    const data = {
+      input: "test",
+    };
+    const ref = await admin.firestore().collection(collectionName).add(data);
+
+    await simulateFunctionTriggered(wrappedGenerateMessage)(ref);
+
+    // expect(processFn).toHaveBeenCalledWith(data);
+    // expect(errorFn).toHaveBeenCalled();
+  });
+
+  for (let i = 1; i < 11; i++) {
+    test(`should run ${i} different processes fine`, async () => {
+      const processes = Array.from({ length: i }, (_, index) => {
+        return new Process(
+          (data) => {
+            return { [`output_${index}`]: `processed by process ${index}` };
+          },
+          {
+            id: `test_${index}`,
+            fieldDependencyArray: [`input_${index}`],
+          }
+        );
+      });
+
+      const processor = new FirestoreOnWriteProcessor({
+        processes: processes,
+      });
+
+      const testFunction = firestore
+        .document(`${collectionName}/${docId}`)
+        .onWrite(async (change, _context) => {
+          return await processor.run(change);
+        });
+
+      wrappedGenerateMessage = fft.wrap(
+        testFunction
+      ) as WrappedFirebaseFunction;
+
+      // Define data that triggers all processes
+      const data = {};
+
+      for (let index = 0; index < i; index++) {
+        data[`input_${index}`] = `test${index}`;
+      }
+
+      // Add the data to Firestore
+      const ref = await admin.firestore().collection(collectionName).add(data);
+
+      // Trigger the wrapped function
+      await simulateFunctionTriggered(wrappedGenerateMessage)(ref);
+
+      // Expect the firestore observer to be called a specific number of times
+
+      // TODO we should wait-for-expect here or something.
+
+      expect(firestoreObserver).toHaveBeenCalledTimes(3);
+
+      // // Fetch the updated document and verify outputs of all processes
+      const updatedDoc = await admin
+        .firestore()
+        .collection(collectionName)
+        .doc(ref.id)
+        .get();
+      const updatedData = updatedDoc.data();
+      expect(updatedData).toBeDefined();
+
+      for (let index = 0; index < i; index++) {
+        expect(updatedData).toHaveProperty(
+          `output_${index}`,
+          `processed by process ${index}`
+        );
+      }
+
+      // // Verify status updates for all processes
+      for (let index = 0; index < i; index++) {
+        expect(updatedData!.status[`test_${index}`].state).toEqual("COMPLETED");
+      }
+    });
+  }
 });
 
 const simulateFunctionTriggered =

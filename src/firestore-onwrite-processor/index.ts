@@ -125,6 +125,10 @@ export class FirestoreOnWriteProcessor {
       processesToRun.push(process);
     }
 
+    if (processesToRun.length === 0) {
+      return; // Exit early if no processes should run.
+    }
+
     // Record the start of processing.
     await this.writeStartEvent(change, processesToRun);
 
@@ -153,6 +157,7 @@ export class FirestoreOnWriteProcessor {
       }
       // Record the completion of processing.
     }
+
     await this.writeCompletionEvent(
       change,
       finalOutput,

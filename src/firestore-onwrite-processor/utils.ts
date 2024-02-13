@@ -1,5 +1,4 @@
-import { DocumentSnapshot } from "firebase-functions/v1/firestore";
-import { FieldValue, GeoPoint, Timestamp } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { Change } from "./types";
 
 export enum ChangeType {

@@ -10,7 +10,7 @@
     "build:watch": "tsc --watch",
     "clean": "rimraf lib",
     "compile": "tsc",
-    "test": "jest",
+    "test": "jest --coverage",
     "format": "prettier --write \"**/*.{js,md,yml,ts,json,yaml}\""
   },
   "keywords": [],
