@@ -6,7 +6,7 @@
     "noImplicitReturns": true,
     "sourceMap": false,
     "outDir": "lib",
-    "skipLibCheck": true
+    "declaration": true,
   },
   "outDir": "lib",
   "compileOnSave": true,
