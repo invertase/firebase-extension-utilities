@@ -1,29 +1,42 @@
 import { FirestoreField } from "./utils";
 
-export class Process<
-  TInput extends Record<string, FirestoreField>,
-  TOutput extends Record<string, FirestoreField>,
-> {
-  processFn: (data: TInput) => Promise<TOutput>;
+export class Process {
+  processFn: (
+    data: Record<string, FirestoreField>
+  ) => Promise<Record<string, FirestoreField>>;
   id: string;
   fieldDependencyArray: string[];
   errorFn?: (e: unknown) => Promise<string | void>;
-  shouldProcess?: (oldData: TInput, newData: TInput) => boolean;
+  shouldProcess?: (
+    oldData: Record<string, FirestoreField>,
+    newData: Record<string, FirestoreField>
+  ) => boolean;
 
   constructor(
-    processFn: (data: TInput) => TOutput | Promise<TOutput>,
+    processFn: (
+      data: Record<string, FirestoreField>
+    ) =>
+      | Record<string, FirestoreField>
+      | Promise<Record<string, FirestoreField>>,
     options: {
       id: string;
       fieldDependencyArray: string[];
-      shouldProcess?: (oldData: TInput, newData: TInput) => boolean;
+      shouldProcess?: (
+        oldData: Record<string, FirestoreField>,
+        newData: Record<string, FirestoreField>
+      ) => boolean;
       errorFn?: (e: unknown) => Promise<string | void>;
-    },
+    }
   ) {
     this.id = options.id;
     this.fieldDependencyArray = options.fieldDependencyArray;
-    this.processFn = async (data: TInput) => processFn(data);
+    this.processFn = async (data: Record<string, FirestoreField>) =>
+      processFn(data);
     this.errorFn = options.errorFn;
-    this.shouldProcess = function (oldData: TInput, newData: TInput) {
+    this.shouldProcess = function (
+      oldData: Record<string, FirestoreField>,
+      newData: Record<string, FirestoreField>
+    ) {
       if (options.shouldProcess) {
         if (!options.shouldProcess(oldData, newData)) {
           return false;

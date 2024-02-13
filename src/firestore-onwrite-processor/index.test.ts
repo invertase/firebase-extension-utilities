@@ -6,6 +6,7 @@ import { Change, firestore } from "firebase-functions";
 import { WrappedFunction } from "firebase-functions-test/lib/main";
 import { Process } from "./process";
 import fetch from "node-fetch";
+import { FirestoreField } from "./utils";
 
 const fft = firebaseFunctionsTest({
   projectId: "demo-gcp",
@@ -27,12 +28,12 @@ type WrappedFirebaseFunction = WrappedFunction<
 const firestoreObserver = jest.fn((_x: any) => {});
 let collectionName: string;
 
-const processFn = (data: { input: string }) => {
+const processFn = ({ input }: Record<string, FirestoreField>) => {
   return { output: "foo" };
 };
 
 const processes = [
-  new Process<{ input: string }, { output: string }>(processFn, {
+  new Process(processFn, {
     id: "test",
     fieldDependencyArray: ["input"],
   }),
@@ -62,7 +63,7 @@ describe("SingleFieldProcessor", () => {
 
     await fetch(
       `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
-      { method: "DELETE" },
+      { method: "DELETE" }
     );
     jest.clearAllMocks();
 
@@ -96,7 +97,7 @@ describe("SingleFieldProcessor", () => {
     // we expect the firestore observer to be called 4 times total.
     expect(firestoreObserver).toHaveBeenCalledTimes(3);
     const firestoreCallData = firestoreObserver.mock.calls.map(
-      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data(),
+      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data()
     );
 
     // for (const call of firestoreCallData) {
@@ -116,7 +117,7 @@ describe("SingleFieldProcessor", () => {
       },
     });
     expect(firestoreCallData[1].status.test.startTime).toEqual(
-      firestoreCallData[1].status.test.updateTime,
+      firestoreCallData[1].status.test.updateTime
     );
     const createTime = firestoreCallData[1].createTime;
     expect(firestoreCallData[2]).toEqual({
@@ -134,7 +135,7 @@ describe("SingleFieldProcessor", () => {
     });
     expect(firestoreCallData[2]).toHaveProperty("createTime", createTime);
     expect(firestoreCallData[2].status.test.updateTime).toEqual(
-      firestoreCallData[2].status.test.completeTime,
+      firestoreCallData[2].status.test.completeTime
     );
   });
   test("should run when given order field", async () => {
@@ -150,7 +151,7 @@ describe("SingleFieldProcessor", () => {
     // we expect the firestore observer to be called 4 times total.
     expect(firestoreObserver).toHaveBeenCalledTimes(3);
     const firestoreCallData = firestoreObserver.mock.calls.map(
-      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data(),
+      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data()
     );
 
     expect(firestoreCallData[0]).toEqual({
@@ -170,7 +171,7 @@ describe("SingleFieldProcessor", () => {
       },
     });
     expect(firestoreCallData[1].status.startTime).toEqual(
-      firestoreCallData[1].status.updateTime,
+      firestoreCallData[1].status.updateTime
     );
     expect(firestoreCallData[2]).toEqual({
       input: "test",
@@ -186,7 +187,7 @@ describe("SingleFieldProcessor", () => {
       },
     });
     expect(firestoreCallData[2].status.updateTime).toEqual(
-      firestoreCallData[2].status.completeTime,
+      firestoreCallData[2].status.completeTime
     );
   });
 });
@@ -197,7 +198,7 @@ const simulateFunctionTriggered =
     const data = (await ref.get()).data() as { [key: string]: unknown };
     const beforeFunctionExecution = fft.firestore.makeDocumentSnapshot(
       data,
-      `${collectionName}/${ref.id}`,
+      `${collectionName}/${ref.id}`
     ) as DocumentSnapshot;
     const change = fft.makeChange(before, beforeFunctionExecution);
     await wrappedFunction(change);

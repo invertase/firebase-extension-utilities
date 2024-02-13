@@ -10,18 +10,15 @@ import {
 import { Process } from "./process";
 export { Process as FirestoreOnWriteProcess } from "./process";
 
-export class FirestoreOnWriteProcessor<
-  TInput extends Record<string, FirestoreField>,
-  TOutput extends Record<string, FirestoreField>,
-> {
+export class FirestoreOnWriteProcessor {
   statusField: string;
-  processes: Process<TInput, TOutput>[];
+  processes: Process[];
   processUpdates: boolean;
   orderField: string;
   errorFn: (e: unknown) => Promise<string | void>;
 
   constructor(options: {
-    processes: Process<TInput, TOutput>[];
+    processes: Process[];
     statusField?: string;
     orderField?: string;
     errorFn?: (e: unknown) => Promise<string | void>;
@@ -33,10 +30,7 @@ export class FirestoreOnWriteProcessor<
     this.errorFn = options.errorFn;
   }
 
-  private async writeStartEvent(
-    change: Change,
-    processesToRun: Process<TInput, TOutput>[]
-  ) {
+  private async writeStartEvent(change: Change, processesToRun: Process[]) {
     const updateTime = now();
 
     const startData = change.after.get(this.orderField);
@@ -60,9 +54,9 @@ export class FirestoreOnWriteProcessor<
 
   private async writeCompletionEvent(
     change: Change,
-    output: TOutput,
-    completedProcesses: Process<TInput, TOutput>[],
-    failedProcesses: Process<TInput, TOutput>[]
+    output: Record<string, FirestoreField>,
+    completedProcesses: Process[],
+    failedProcesses: Process[]
   ) {
     const updateTime = now();
 
@@ -113,10 +107,10 @@ export class FirestoreOnWriteProcessor<
 
     const statusMap = change.after.get(this.statusField) || {};
 
-    const oldData = change.before?.data() as TInput;
-    const newData = change.after?.data() as TInput;
+    const oldData = change.before?.data() as Record<string, FirestoreField>;
+    const newData = change.after?.data() as Record<string, FirestoreField>;
 
-    const processesToRun: Process<TInput, TOutput>[] = [];
+    const processesToRun: Process[] = [];
 
     for (const process of this.processes) {
       // get status
@@ -140,7 +134,7 @@ export class FirestoreOnWriteProcessor<
 
     let completedProcesses = [];
     let failedProcesses = [];
-    let finalOutput: TOutput;
+    let finalOutput: Record<string, FirestoreField>;
 
     for (const process of processesToRun) {
       try {
