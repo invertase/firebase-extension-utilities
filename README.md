@@ -16,7 +16,7 @@ const processFn = ({ input }) => {
   return { output };
 };
 
-const myProcess = new FirestoreOnWriteProcess({
+const myProcess = new FirestoreOnWriteProcess(processFn,{
   id: "myProcessId",
   fieldDependencyArray: ["input"],
 });
