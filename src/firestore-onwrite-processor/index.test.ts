@@ -6,7 +6,7 @@ import { Change, firestore } from "firebase-functions";
 import { WrappedFunction } from "firebase-functions-test/lib/main";
 import { Process } from "./process";
 import fetch from "node-fetch";
-import { FirestoreField } from "./utils";
+import { FirestoreField } from "./types";
 
 const fft = firebaseFunctionsTest({
   projectId: "demo-gcp",
@@ -53,14 +53,6 @@ describe("SingleFieldProcessor", () => {
     collectionName = "test";
     docId = "123";
 
-    const testFunction = firestore
-      .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
-        return await processor.run(change);
-      });
-
-    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
-
     await fetch(
       `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
       { method: "DELETE" }
@@ -88,6 +80,14 @@ describe("SingleFieldProcessor", () => {
   });
 
   test("should run when not given order field", async () => {
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
     const data = {
       input: "test",
     };
@@ -139,6 +139,14 @@ describe("SingleFieldProcessor", () => {
     );
   });
   test("should run when given order field", async () => {
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
     const customCreateTime = new Date().toISOString();
     const data = {
       input: "test",
@@ -189,6 +197,81 @@ describe("SingleFieldProcessor", () => {
     expect(firestoreCallData[2].status.updateTime).toEqual(
       firestoreCallData[2].status.completeTime
     );
+  });
+
+  test("should run multiple processes fine", async () => {
+    const firstProcessFn = ({ input }: Record<string, FirestoreField>) => {
+      return { firstOutput: "processed by first process" };
+    };
+
+    // Add a second process function
+    const secondProcessFn = ({ input }: Record<string, FirestoreField>) => {
+      return { secondOutput: "processed by second process" };
+    };
+
+    const processes = [
+      new Process(firstProcessFn, {
+        id: "test",
+        fieldDependencyArray: ["input"],
+      }),
+      new Process(secondProcessFn, {
+        id: "secondTest",
+        fieldDependencyArray: ["input"],
+      }),
+    ];
+
+    const processor = new FirestoreOnWriteProcessor({
+      processes: processes,
+    });
+
+    const testFunction = firestore
+      .document(`${collectionName}/${docId}`)
+      .onWrite(async (change, _context) => {
+        return await processor.run(change);
+      });
+
+    wrappedGenerateMessage = fft.wrap(testFunction) as WrappedFirebaseFunction;
+
+    // Define data that triggers both processes
+    const data = {
+      input: "test",
+    };
+
+    // Add the data to Firestore
+    const ref = await admin.firestore().collection(collectionName).add(data);
+
+    // Trigger the wrapped function
+    await simulateFunctionTriggered(wrappedGenerateMessage)(ref);
+
+    // Expect the firestore observer to be called a specific number of times
+
+    const calls = firestoreObserver.mock.calls;
+
+    // TODO we should wait-for-expect here or something.
+
+    expect(firestoreObserver).toHaveBeenCalledTimes(3);
+
+    // // Fetch the updated document and verify outputs of both processes
+    const updatedDoc = await admin
+      .firestore()
+      .collection(collectionName)
+      .doc(ref.id)
+      .get();
+    const updatedData = updatedDoc.data();
+    expect(updatedData).toBeDefined();
+
+    expect(updatedData).toHaveProperty(
+      "firstOutput",
+      "processed by first process"
+    ); // Output from the first process
+    expect(updatedData).toHaveProperty(
+      "secondOutput",
+      "processed by second process"
+    ); // Output from the second process
+
+    // // Verify status updates for both processes
+    expect(updatedData!.status.test.state).toEqual("COMPLETED");
+    expect(updatedData!.status.secondTest.state).toEqual("COMPLETED");
   });
 });
 

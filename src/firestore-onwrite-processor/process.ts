@@ -1,4 +1,4 @@
-import { FirestoreField } from "./utils";
+import { FirestoreField } from "./types";
 
 // Define the Process class.
 export class Process {
@@ -17,7 +17,7 @@ export class Process {
   errorFn?: (e: unknown) => Promise<string | void>;
 
   // Optional function to determine whether the process should be executed based on old and new data.
-  shouldProcess?: (
+  shouldProcess: (
     oldData: Record<string, FirestoreField>,
     newData: Record<string, FirestoreField>
   ) => boolean;

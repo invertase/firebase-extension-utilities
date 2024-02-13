@@ -1,13 +1,5 @@
-// Import necessary types and utilities from a local module.
-import {
-  Change,
-  State,
-  getChangeType,
-  ChangeType,
-  now,
-  FirestoreField,
-  Status,
-} from "./utils";
+import { getChangeType, ChangeType, now } from "./utils";
+import { FirestoreField, Status, State, Change } from "./types";
 import { Process } from "./process";
 
 // Re-export the `Process` class for external use, renaming it for clarity.
@@ -160,12 +152,12 @@ export class FirestoreOnWriteProcessor {
         }
       }
       // Record the completion of processing.
-      await this.writeCompletionEvent(
-        change,
-        finalOutput,
-        completedProcesses,
-        failedProcesses
-      );
     }
+    await this.writeCompletionEvent(
+      change,
+      finalOutput,
+      completedProcesses,
+      failedProcesses
+    );
   }
 }
