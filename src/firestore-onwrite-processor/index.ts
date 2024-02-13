@@ -56,7 +56,7 @@ export class FirestoreOnWriteProcessor {
     change: Change,
     output: Record<string, FirestoreField>,
     completedProcesses: Process[],
-    failedProcesses: Process[]
+    failedProcesses: Process[],
   ) {
     const updateTime = now(); // Get the current time for the update.
 
@@ -162,7 +162,7 @@ export class FirestoreOnWriteProcessor {
       change,
       finalOutput,
       completedProcesses,
-      failedProcesses
+      failedProcesses,
     );
   }
 }

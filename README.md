@@ -16,7 +16,7 @@ const processFn = ({ input }) => {
   return { output };
 };
 
-const myProcess = new FirestoreOnWriteProcess(processFn,{
+const myProcess = new FirestoreOnWriteProcess(processFn, {
   id: "myProcessId",
   fieldDependencyArray: ["input"],
 });
@@ -29,4 +29,3 @@ export const myFunction = functions.firestore
   .document(COLLECTION_NAME / { id })
   .onWrite(myProcessor.run);
 ```
-

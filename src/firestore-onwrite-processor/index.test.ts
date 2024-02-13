@@ -55,7 +55,7 @@ describe("SingleFieldProcessor", () => {
 
     await fetch(
       `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     jest.clearAllMocks();
 
@@ -168,7 +168,7 @@ describe("SingleFieldProcessor", () => {
     // we expect the firestore observer to be called 4 times total.
     expect(firestoreObserver).toHaveBeenCalledTimes(3);
     const firestoreCallData = firestoreObserver.mock.calls.map(
-      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data()
+      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data(),
     );
 
     expect(firestoreCallData[0]).toEqual({ input: "test" });
@@ -184,7 +184,7 @@ describe("SingleFieldProcessor", () => {
       },
     });
     expect(firestoreCallData[1].status.test.startTime).toEqual(
-      firestoreCallData[1].status.test.updateTime
+      firestoreCallData[1].status.test.updateTime,
     );
     const createTime = firestoreCallData[1].createTime;
     expect(firestoreCallData[2]).toEqual({
@@ -202,7 +202,7 @@ describe("SingleFieldProcessor", () => {
     });
     expect(firestoreCallData[2]).toHaveProperty("createTime", createTime);
     expect(firestoreCallData[2].status.test.updateTime).toEqual(
-      firestoreCallData[2].status.test.completeTime
+      firestoreCallData[2].status.test.completeTime,
     );
   });
 
@@ -227,7 +227,7 @@ describe("SingleFieldProcessor", () => {
     // we expect the firestore observer to be called 4 times total.
     expect(firestoreObserver).toHaveBeenCalledTimes(3);
     const firestoreCallData = firestoreObserver.mock.calls.map(
-      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data()
+      (call: { docs: { data: () => any }[] }[]) => call[0].docs[0].data(),
     );
 
     expect(firestoreCallData[0]).toEqual({
@@ -247,7 +247,7 @@ describe("SingleFieldProcessor", () => {
       },
     });
     expect(firestoreCallData[1].status.startTime).toEqual(
-      firestoreCallData[1].status.updateTime
+      firestoreCallData[1].status.updateTime,
     );
     expect(firestoreCallData[2]).toEqual({
       input: "test",
@@ -263,7 +263,7 @@ describe("SingleFieldProcessor", () => {
       },
     });
     expect(firestoreCallData[2].status.updateTime).toEqual(
-      firestoreCallData[2].status.completeTime
+      firestoreCallData[2].status.completeTime,
     );
   });
 
@@ -330,11 +330,11 @@ describe("SingleFieldProcessor", () => {
 
     expect(updatedData).toHaveProperty(
       "firstOutput",
-      "processed by first process"
+      "processed by first process",
     ); // Output from the first process
     expect(updatedData).toHaveProperty(
       "secondOutput",
-      "processed by second process"
+      "processed by second process",
     ); // Output from the second process
 
     // // Verify status updates for both processes
@@ -406,11 +406,11 @@ describe("SingleFieldProcessor", () => {
 
     expect(updatedData).toHaveProperty(
       "firstOutput",
-      "processed by first process"
+      "processed by first process",
     ); // Output from the first process
     expect(updatedData).toHaveProperty(
       "secondOutput",
-      "processed by second process"
+      "processed by second process",
     ); // Output from the second process
 
     // // Verify status updates for both processes
@@ -478,7 +478,7 @@ describe("SingleFieldProcessor", () => {
     expect(updatedData).toBeDefined();
     expect(updatedData).toHaveProperty(
       "firstOutput",
-      "processed by first process"
+      "processed by first process",
     );
     expect(updatedData).not.toHaveProperty("secondOutput");
     expect(updatedData!.status).not.toHaveProperty("secondTest");
@@ -528,7 +528,7 @@ describe("SingleFieldProcessor", () => {
           {
             id: `test_${index}`,
             fieldDependencyArray: [`input_${index}`],
-          }
+          },
         );
       });
 
@@ -543,7 +543,7 @@ describe("SingleFieldProcessor", () => {
         });
 
       wrappedGenerateMessage = fft.wrap(
-        testFunction
+        testFunction,
       ) as WrappedFirebaseFunction;
 
       // Define data that triggers all processes
@@ -577,7 +577,7 @@ describe("SingleFieldProcessor", () => {
       for (let index = 0; index < i; index++) {
         expect(updatedData).toHaveProperty(
           `output_${index}`,
-          `processed by process ${index}`
+          `processed by process ${index}`,
         );
       }
 
@@ -595,7 +595,7 @@ const simulateFunctionTriggered =
     const data = (await ref.get()).data() as { [key: string]: unknown };
     const beforeFunctionExecution = fft.firestore.makeDocumentSnapshot(
       data,
-      `${collectionName}/${ref.id}`
+      `${collectionName}/${ref.id}`,
     ) as DocumentSnapshot;
     const change = fft.makeChange(before, beforeFunctionExecution);
     await wrappedFunction(change);
