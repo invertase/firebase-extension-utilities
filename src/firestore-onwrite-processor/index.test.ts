@@ -27,13 +27,14 @@ type WrappedFirebaseFunction = WrappedFunction<
 const firestoreObserver = jest.fn((_x: any) => {});
 let collectionName: string;
 
+const processFn = (data: { input: string }) => {
+  return { output: "foo" };
+};
+
 const processes = [
-  new Process<{ input: string }, { output: string }>({
+  new Process<{ input: string }, { output: string }>(processFn, {
     id: "test",
     fieldDependencyArray: ["input"],
-    processFn: async (data: { input: string }) => {
-      return { output: "foo" };
-    },
   }),
 ];
 

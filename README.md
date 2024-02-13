@@ -8,15 +8,17 @@ This provides a processor class which you can pass to your firestore onWrite cal
 import {
   FirestoreOnWriteProcessor,
   FirestoreOnWriteProcess,
-} from "firebase-extension-utilities/firestore-onwrite-processor";
+} from "../firestore-onwrite-processor";
+
+// this can be async if needed
+const processFn = ({ input }) => {
+  // do stuff here
+  return { output };
+};
 
 const myProcess = new FirestoreOnWriteProcess({
   id: "myProcessId",
   fieldDependencyArray: ["input"],
-  processFn: ({ input }) => {
-    // do stuff here
-    return { output };
-  },
 });
 
 const myProcessor = new FirestoreOnWriteProcessor({
@@ -28,13 +30,6 @@ export const myFunction = functions.firestore
   .onWrite(process);
 ```
 
-### TODO:
-
-- change signature of above, process function should be main argument and then should pass `options` which include optional id etc.
-
 ### Used in:
 
 (nda)
-## distributed-cloud-tasks
-
-**(TODO)**
