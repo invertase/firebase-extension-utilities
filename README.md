@@ -27,7 +27,7 @@ const myProcessor = new FirestoreOnWriteProcessor({
 
 export const myFunction = functions.firestore
   .document(COLLECTION_NAME / { id })
-  .onWrite(process);
+  .onWrite(myProcessor.run);
 ```
 
 ### Used in:
