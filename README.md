@@ -8,7 +8,7 @@ This provides a processor class which you can pass to your firestore onWrite cal
 import {
   FirestoreOnWriteProcessor,
   FirestoreOnWriteProcess,
-} from "../firestore-onwrite-processor";
+} from "@invertase/firebase-extension-utilities";
 
 // this can be async if needed
 const processFn = ({ input }) => {
