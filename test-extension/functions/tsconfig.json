@@ -6,10 +6,9 @@
     "noImplicitReturns": true,
     "sourceMap": false,
     "outDir": "lib",
-    "declaration": true
+    "skipLibCheck": true
   },
-  "outDir": "lib",
   "compileOnSave": true,
   "include": ["src"],
-  "exclude": ["**/*.test.ts", "test-extension"]
+  "exclude": ["**/*.test.ts"]
 }

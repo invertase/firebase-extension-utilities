@@ -1,0 +1,24 @@
+{
+  "name": "test-extension",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "license": "Apache-2.0",
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "npm run clean && npm run compile",
+    "build:watch": "tsc --watch",
+    "clean": "rimraf lib",
+    "compile": "tsc",
+    "test": "jest",
+    "generate-readme": "firebase ext:info .. --markdown > ../README.md"
+  },
+  "dependencies": {
+    "@invertase/firebase-extension-utilities": "file:invertase-firebase-extension-utilities-0.0.1.tgz",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^4.7.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3"
+  },
+  "private": true
+}
