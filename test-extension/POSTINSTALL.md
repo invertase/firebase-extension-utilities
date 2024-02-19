@@ -1,0 +1,1 @@
+test POSTINSTALL.md

@@ -1,9 +1,9 @@
 import { getChangeType, ChangeType, now } from "./utils";
 import { FirestoreField, Status, State, Change } from "./types";
-import { Process } from "./process";
+import { Process } from "../common/process";
 
 // Re-export the `Process` class for external use, renaming it for clarity.
-export { Process as FirestoreOnWriteProcess } from "./process";
+export { Process as FirestoreOnWriteProcess } from "../common/process";
 
 // Define a class to process Firestore document writes.
 export class FirestoreOnWriteProcessor {
@@ -11,7 +11,7 @@ export class FirestoreOnWriteProcessor {
   statusField: string;
   processes: Process[];
   orderField: string;
-  errorFn: (e: unknown) => Promise<string | void>;
+  errorFn?: (e: unknown) => Promise<string | void>;
 
   // Constructor to initialize the processor with custom options.
   constructor(options: {
@@ -56,7 +56,7 @@ export class FirestoreOnWriteProcessor {
     change: Change,
     output: Record<string, FirestoreField>,
     completedProcesses: Process[],
-    failedProcesses: Process[]
+    failedProcesses: Process[],
   ) {
     const updateTime = now(); // Get the current time for the update.
 
@@ -113,7 +113,14 @@ export class FirestoreOnWriteProcessor {
       const state = status?.state;
 
       // Skip processes already in a final state.
-      if ([State.PROCESSING, State.COMPLETED, State.ERROR].includes(state)) {
+      if (
+        [
+          State.PROCESSING,
+          State.COMPLETED,
+          State.ERROR,
+          State.BACKFILLED,
+        ].includes(state)
+      ) {
         continue;
       }
 
@@ -132,9 +139,9 @@ export class FirestoreOnWriteProcessor {
     // Record the start of processing.
     await this.writeStartEvent(change, processesToRun);
 
-    let completedProcesses = [];
-    let failedProcesses = [];
-    let finalOutput: Record<string, FirestoreField>;
+    let completedProcesses: Process[] = [];
+    let failedProcesses: Process[] = [];
+    let finalOutput: Record<string, FirestoreField> = {};
 
     // Process each selected process.
     for (const process of processesToRun) {
@@ -162,7 +169,7 @@ export class FirestoreOnWriteProcessor {
       change,
       finalOutput,
       completedProcesses,
-      failedProcesses
+      failedProcesses,
     );
   }
 }

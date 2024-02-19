@@ -14,7 +14,6 @@ export enum State {
   PROCESSING = "PROCESSING",
   COMPLETED = "COMPLETED",
   ERROR = "ERROR",
-  BACKFILLED = "BACKFILLED",
 }
 
 export interface Status {

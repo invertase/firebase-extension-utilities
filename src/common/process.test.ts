@@ -1,5 +1,5 @@
 import { Process } from "./process"; // Adjust the import path as necessary
-import { FirestoreField } from "./types"; // Adjust the import path as necessary
+import { FirestoreField } from "../firestore-onwrite-processor/types"; // Adjust the import path as necessary
 
 describe("Process class", () => {
   // Test the processFn execution

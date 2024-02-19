@@ -12,7 +12,8 @@
     "clean": "rimraf lib",
     "compile": "tsc",
     "test": "jest --coverage",
-    "format": "prettier --write \"**/*.{js,md,yml,ts,json,yaml}\""
+    "format": "prettier --write \"**/*.{js,md,yml,ts,json,yaml}\"",
+    "pack-into-test-extension": "npm pack --pack-destination test-extension/functions && cd test-extension/functions && npm install invertase-firebase-extension-utilities-0.0.1.tgz"
   },
   "keywords": [],
   "license": "Apache-2.0",
@@ -20,6 +21,7 @@
     "firebase-functions": "^4.7.0"
   },
   "devDependencies": {
+    "typescript": "^5.3.3",
     "@types/jest": "^29.5.12",
     "@types/node-fetch": "^2.6.11",
     "firebase-functions-test": "^3.1.1",
