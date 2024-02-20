@@ -20,6 +20,9 @@ const myProcess = new FirestoreOnWriteProcess(processFn, {
   collectionName: "myCollection",
   fieldDependencyArray: ["foo"],
   isValidDoc: (data) => data["foo"] && typeof data["foo"] === "string",
+  batchFn: async (data) => {
+    return data.map((doc) => ({ ...doc, foo: doc.foo + "Bar" }));
+  },
 });
 
 //  backfill is simply exporting these two, the package handles everything else.

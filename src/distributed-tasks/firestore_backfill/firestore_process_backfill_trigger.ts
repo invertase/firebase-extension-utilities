@@ -12,6 +12,7 @@ export const firestoreProcessBackfillTrigger = (
     metadataDocumentPath,
     shouldDoBackfill,
     extensionInstanceId,
+    metadata,
   }: FirestoreBackfillOptions
 ) => {
   return async () => {
@@ -22,6 +23,7 @@ export const firestoreProcessBackfillTrigger = (
         collectionName: process.collectionName,
         instanceId: extensionInstanceId,
         createdAt: admin.firestore.Timestamp.now(),
+        ...metadata,
       }
     );
 

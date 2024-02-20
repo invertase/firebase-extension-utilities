@@ -44,7 +44,7 @@ export const handlerFromProcess =
       batches.map(async (batch) => {
         // TODO: get rid of ! assertion
         return process.batchProcess(batch.map((doc) => doc.data()!));
-      }),
+      })
     );
 
     const toWrite = results.flat();
@@ -58,7 +58,7 @@ export const handlerFromProcess =
           [`status.${process.id}.state`]: "BACKFILLED",
           [`status.${process.id}.completeTime`]:
             admin.firestore.FieldValue.serverTimestamp(),
-        },
+        }
       );
     }
     await writer.commit();
@@ -73,7 +73,7 @@ async function getValidDocs(process: Process, documentIds: string[]) {
 
   await admin.firestore().runTransaction(async (transaction) => {
     const refs = documentIds.map((id: string) =>
-      admin.firestore().collection(process.collectionName).doc(id),
+      admin.firestore().collection(process.collectionName).doc(id)
     );
     //@ts-ignore
     const docs = await transaction.getAll<DocumentData>(...refs);
@@ -82,7 +82,7 @@ async function getValidDocs(process: Process, documentIds: string[]) {
       const data = doc.data();
       if (!process.isValidDoc || !process.isValidDoc(data)) {
         functions.logger.warn(
-          `Document ${doc.ref.path} is not valid for ${process.id} process`,
+          `Document ${doc.ref.path} is not valid for ${process.id} process`
         );
       } else if (
         // TODO: add a param for backfill strategy
@@ -92,7 +92,7 @@ async function getValidDocs(process: Process, documentIds: string[]) {
         data["status"][process.id].state !== "BACKFILLED"
       ) {
         functions.logger.warn(
-          `Document ${doc.ref.path} is not in the correct state to be backfilled`,
+          `Document ${doc.ref.path} is not in the correct state to be backfilled`
         );
       } else {
         documents.push(doc);

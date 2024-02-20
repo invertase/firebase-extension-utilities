@@ -1,6 +1,6 @@
 import { Process } from "../../common/process";
 import { taskThreadTaskHandler } from "../handler";
-import { handlerFromProcess } from "./handler";
+import { handlerFromProcess } from "./handler_from_process";
 import { FirestoreBackfillOptions } from "./types";
 
 export const firestoreProcessBackfillTask = (
