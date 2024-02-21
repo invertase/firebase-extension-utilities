@@ -21,7 +21,6 @@
     "firebase-functions": "^4.7.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
     "@types/jest": "^29.5.12",
     "@types/node-fetch": "^2.6.11",
     "firebase-functions-test": "^3.1.1",
@@ -29,6 +28,8 @@
     "node-fetch": "^2.7.0",
     "prettier": "^3.2.5",
     "rimraf": "^5.0.5",
-    "ts-jest": "^29.1.2"
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3",
+    "wait-for-expect": "^3.0.2"
   }
 }

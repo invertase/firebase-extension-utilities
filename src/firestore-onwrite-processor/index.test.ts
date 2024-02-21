@@ -29,7 +29,6 @@ const firestoreObserver = jest.fn((_x: any) => {});
 let collectionName: string;
 
 const processFn = ({ input }: Record<string, FirestoreField>) => {
-  console.log("HERE");
   return { output: "foo" };
 };
 

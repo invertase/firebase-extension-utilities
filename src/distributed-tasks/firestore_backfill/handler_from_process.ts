@@ -70,7 +70,7 @@ export const handlerFromProcess =
     return { success: docs.length };
   };
 
-async function getValidDocs(
+export async function getValidDocs(
   process: Process,
   documentIds: string[],
   options: FirestoreBackfillOptions
