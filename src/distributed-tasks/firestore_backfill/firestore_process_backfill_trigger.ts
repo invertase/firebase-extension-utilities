@@ -7,23 +7,17 @@ import { FirestoreBackfillOptions } from "./types";
 
 export const firestoreProcessBackfillTrigger = (
   process: Process,
-  {
-    queueName,
-    metadataDocumentPath,
-    shouldDoBackfill,
-    extensionInstanceId,
-    metadata,
-  }: FirestoreBackfillOptions
+  options: FirestoreBackfillOptions
 ) => {
   return async () => {
     const { path, shouldBackfill } = await updateOrCreateMetadataDoc(
-      metadataDocumentPath,
-      shouldDoBackfill,
+      options.metadataDocumentPath,
+      options.shouldDoBackfill,
       {
-        collectionName: process.collectionName,
-        instanceId: extensionInstanceId,
+        collectionName: options.collectionName,
+        instanceId: options.extensionInstanceId,
         createdAt: admin.firestore.Timestamp.now(),
-        ...metadata,
+        ...options.metadata,
       }
     );
 
@@ -33,7 +27,7 @@ export const firestoreProcessBackfillTrigger = (
     }
 
     try {
-      const refs = await getDocsForBackfilling(process);
+      const refs = await getDocsForBackfilling(options);
 
       if (refs.length === 0) {
         // logs.backfillNotRequired();
@@ -43,10 +37,10 @@ export const firestoreProcessBackfillTrigger = (
 
       return taskThreadTrigger<string>({
         tasksDoc: path,
-        queueName,
+        queueName: options.queueName,
         batchSize: 50,
         taskParams: refs.map((ref) => ref.id),
-        extensionInstanceId,
+        extensionInstanceId: options.extensionInstanceId,
       });
     } catch (error) {
       functions.logger.error("Error with backfill trigger");
@@ -55,20 +49,20 @@ export const firestoreProcessBackfillTrigger = (
   };
 };
 
-const getDocsForBackfilling = async (process: Process) => {
-  const collection = admin.firestore().collection(process.collectionName);
+const getDocsForBackfilling = async (options: FirestoreBackfillOptions) => {
+  const collection = admin.firestore().collection(options.collectionName);
 
   const refs = await collection.listDocuments();
 
   if (refs.length === 0) {
     functions.logger.info(
-      `No documents found in the collection ${process.collectionName} 📚`
+      `No documents found in the collection ${options.collectionName} 📚`
     );
     return [];
   }
 
   functions.logger.info(
-    `Found ${refs.length} documents in the collection ${process.collectionName} 📚`
+    `Found ${refs.length} documents in the collection ${options.collectionName} 📚`
   );
   return refs;
 };

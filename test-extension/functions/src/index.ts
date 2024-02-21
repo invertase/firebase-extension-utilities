@@ -5,6 +5,7 @@ import {
   firestoreProcessBackfillTrigger,
   FirestoreOnWriteProcess,
   FirestoreOnWriteProcessor,
+  FirestoreBackfillOptions,
 } from "@invertase/firebase-extension-utilities";
 
 admin.initializeApp();
@@ -19,7 +20,7 @@ const myProcess = new FirestoreOnWriteProcess(processFn, {
   id: "myProcess",
   collectionName: "myCollection",
   fieldDependencyArray: ["foo"],
-  isValidDoc: (data) => data["foo"] && typeof data["foo"] === "string",
+  shouldBackfill: (data) => data["foo"] && typeof data["foo"] === "string",
   batchFn: async (data) => {
     return data.map((doc) => ({ ...doc, foo: doc.foo + "Bar" }));
   },
@@ -28,7 +29,7 @@ const myProcess = new FirestoreOnWriteProcess(processFn, {
 //  backfill is simply exporting these two, the package handles everything else.
 // Note that only a single process is currently supported
 
-const backfillOptions = {
+const backfillOptions: FirestoreBackfillOptions = {
   queueName: "backfillTask",
   metadataDocumentPath:
     "backfills/myMetadataDocument_" + process.env.EXT_INSTANCE_ID!,

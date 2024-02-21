@@ -1,80 +1,66 @@
 import { FirestoreField } from "./types";
 
-export class Process {
-  public readonly processFn: (
-    data: Record<string, FirestoreField>,
-  ) => Promise<Record<string, FirestoreField>>;
-
-  public readonly id: string;
-  public readonly collectionName: string;
-  public readonly fieldDependencyArray: string[];
-  public readonly isValidDoc?: (
-    data: Record<string, FirestoreField>,
-  ) => boolean;
-  public readonly errorFn?: (
-    e: unknown,
-  ) => string | void | Promise<string | void>;
-  public readonly batchFn?: (
-    data: Record<string, FirestoreField>[],
+interface ProcessOptions {
+  id: string;
+  fieldDependencyArray?: string[];
+  shouldBackfill?: (data: Record<string, FirestoreField>) => boolean;
+  errorFn?: (e: unknown) => string | void | Promise<string | void>;
+  batchFn?: (
+    data: Record<string, FirestoreField>[]
   ) => Promise<Record<string, FirestoreField>[]>;
-  public readonly shouldProcessFn?: (
+  shouldProcess?: (
     oldData: Record<string, FirestoreField>,
-    newData: Record<string, FirestoreField>,
+    newData: Record<string, FirestoreField>
   ) => boolean;
+}
 
-  constructor(
-    processFn: (
-      data: Record<string, FirestoreField>,
-    ) =>
-      | Record<string, FirestoreField>
-      | Promise<Record<string, FirestoreField>>,
-    {
+type ProcessFunction = (
+  data: Record<string, FirestoreField>
+) => Record<string, FirestoreField> | Promise<Record<string, FirestoreField>>;
+type ShouldBackfillFunction = (data: Record<string, FirestoreField>) => boolean;
+type ErrorFunction = (e: unknown) => string | void | Promise<string | void>;
+type BatchFunction = (
+  data: Record<string, FirestoreField>[]
+) => Promise<Record<string, FirestoreField>[]>;
+type ShouldOnWriteProcessFunction = (
+  oldData: Record<string, FirestoreField>,
+  newData: Record<string, FirestoreField>
+) => boolean;
+
+export class Process {
+  public readonly processFn: ProcessFunction;
+  public readonly id: string;
+  public readonly fieldDependencyArray: string[];
+  public readonly shouldBackfill?: ShouldBackfillFunction;
+  public readonly errorFn?: ErrorFunction;
+  public readonly batchFn?: BatchFunction;
+  public readonly shouldProcessFn?: ShouldOnWriteProcessFunction;
+
+  constructor(processFn: ProcessFunction, options: ProcessOptions) {
+    const {
       id,
-      collectionName,
       fieldDependencyArray,
-      isValidDoc,
+      shouldBackfill,
       errorFn,
       batchFn,
-      shouldProcess: shouldProcessFn,
-    }: {
-      id: string;
-      collectionName: string;
-      fieldDependencyArray: string[];
-      isValidDoc?: (data: Record<string, FirestoreField>) => boolean;
-      errorFn?: (e: unknown) => string | void | Promise<string | void>;
-      batchFn?: (
-        data: Record<string, FirestoreField>[],
-      ) =>
-        | Record<string, FirestoreField>[]
-        | Promise<Record<string, FirestoreField>[]>;
-      shouldProcess?: (
-        oldData: Record<string, FirestoreField>,
-        newData: Record<string, FirestoreField>,
-      ) => boolean;
-    },
-  ) {
+      shouldProcess,
+    } = options;
     this.id = id;
-    this.collectionName = collectionName;
     this.fieldDependencyArray = fieldDependencyArray;
-    this.isValidDoc = isValidDoc;
+    this.shouldBackfill = shouldBackfill;
     this.errorFn = errorFn;
-    this.batchFn = batchFn
-      ? async (data: Record<string, FirestoreField>[]) => batchFn(data)
-      : undefined;
-    this.shouldProcessFn = shouldProcessFn;
-    this.processFn = async (data: Record<string, FirestoreField>) =>
-      processFn(data);
+    this.batchFn = batchFn ? async (data) => batchFn(data) : undefined;
+    this.shouldProcessFn = shouldProcess;
+    this.processFn = async (data) => processFn(data);
   }
 
   async batchProcess(
-    data: Record<string, FirestoreField>[],
+    data: Record<string, FirestoreField>[]
   ): Promise<Record<string, FirestoreField>[]> {
     if (this.batchFn) {
       return this.batchFn(data);
     }
-    // Default batch processing: process each item individually.
     const allSettled = Promise.allSettled(data.map(this.processFn));
-
     const results = await allSettled;
     const output: Record<string, FirestoreField>[] = [];
     for (const result of results) {
@@ -92,7 +78,7 @@ export class Process {
 
   shouldProcess(
     oldData: Record<string, FirestoreField>,
-    newData: Record<string, FirestoreField>,
+    newData: Record<string, FirestoreField>
   ): boolean {
     if (this.shouldProcessFn && !this.shouldProcessFn(oldData, newData)) {
       return false;

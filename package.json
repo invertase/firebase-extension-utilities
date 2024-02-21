@@ -1,7 +1,7 @@
 {
   "name": "@invertase/firebase-extension-utilities",
   "author": "Jacob Cable",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Helper classes for building Firebase Extensions",
   "scope": "invertase",
   "main": "lib/index.js",
@@ -13,7 +13,7 @@
     "compile": "tsc",
     "test": "jest --coverage",
     "format": "prettier --write \"**/*.{js,md,yml,ts,json,yaml}\"",
-    "pack-into-test-extension": "npm pack --pack-destination test-extension/functions && cd test-extension/functions && npm install invertase-firebase-extension-utilities-0.0.1.tgz"
+    "pack-into-test-extension": "npm run build && rimraf test-extension/functions/invertase-firebase-extension-utilities-*.tgz && npm pack --pack-destination test-extension/functions && cd test-extension/functions && npm install invertase-firebase-extension-utilities-*.tgz"
   },
   "keywords": [],
   "license": "Apache-2.0",

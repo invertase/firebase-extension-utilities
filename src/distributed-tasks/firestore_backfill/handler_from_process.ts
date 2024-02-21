@@ -3,11 +3,13 @@ import * as functions from "firebase-functions";
 import { DocumentSnapshot } from "firebase-functions/v1/firestore";
 import { Process } from "../../common/process";
 import { chunkArray } from "../utils";
+import { FirestoreBackfillOptions } from "./types";
 
 export const handlerFromProcess =
-  (process: Process) => async (chunk: string[]) => {
+  (process: Process, options: FirestoreBackfillOptions) =>
+  async (chunk: string[]) => {
     //  get documents from firestore
-    const docs = await getValidDocs(process, chunk);
+    const docs = await getValidDocs(process, chunk, options);
 
     if (docs.length === 0) {
       functions.logger.info("No data to handle, skipping...");
@@ -23,7 +25,7 @@ export const handlerFromProcess =
       try {
         await admin
           .firestore()
-          .collection(process.collectionName)
+          .collection(options.collectionName)
           .doc(chunk[0])
           .update({
             ...result,
@@ -52,7 +54,7 @@ export const handlerFromProcess =
 
     for (let i = 0; i < toWrite.length; i++) {
       writer.update(
-        admin.firestore().collection(process.collectionName).doc(docs[i].id),
+        admin.firestore().collection(options.collectionName).doc(docs[i].id),
         {
           ...toWrite[0],
           [`status.${process.id}.state`]: "BACKFILLED",
@@ -68,19 +70,23 @@ export const handlerFromProcess =
     return { success: docs.length };
   };
 
-async function getValidDocs(process: Process, documentIds: string[]) {
+async function getValidDocs(
+  process: Process,
+  documentIds: string[],
+  options: FirestoreBackfillOptions
+) {
   const documents: DocumentSnapshot[] = [];
 
   await admin.firestore().runTransaction(async (transaction) => {
     const refs = documentIds.map((id: string) =>
-      admin.firestore().collection(process.collectionName).doc(id)
+      admin.firestore().collection(options.collectionName).doc(id)
     );
     //@ts-ignore
     const docs = await transaction.getAll<DocumentData>(...refs);
 
     for (let doc of docs) {
       const data = doc.data();
-      if (!process.isValidDoc || !process.isValidDoc(data)) {
+      if (!process.shouldBackfill || !process.shouldBackfill(data)) {
         functions.logger.warn(
           `Document ${doc.ref.path} is not valid for ${process.id} process`
         );

@@ -8,4 +8,5 @@ export {
   taskThreadTrigger,
   firestoreProcessBackfillTask,
   firestoreProcessBackfillTrigger,
+  FirestoreBackfillOptions,
 } from "./distributed-tasks";

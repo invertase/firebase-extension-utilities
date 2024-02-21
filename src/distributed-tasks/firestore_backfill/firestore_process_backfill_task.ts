@@ -5,8 +5,12 @@ import { FirestoreBackfillOptions } from "./types";
 
 export const firestoreProcessBackfillTask = (
   process: Process,
-  { queueName, extensionInstanceId }: FirestoreBackfillOptions
+  options: FirestoreBackfillOptions
 ) => {
-  const handler = handlerFromProcess(process);
-  return taskThreadTaskHandler(handler, queueName, extensionInstanceId);
+  const handler = handlerFromProcess(process, options);
+  return taskThreadTaskHandler(
+    handler,
+    options.queueName,
+    options.extensionInstanceId
+  );
 };
