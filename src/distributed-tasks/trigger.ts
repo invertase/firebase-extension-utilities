@@ -53,9 +53,11 @@ export async function taskThreadTrigger<P>({
     let counter = 1;
 
     await admin.firestore().doc(tasksDoc).set({
-      totalLength: taskParams.length,
-      processedLength: 0,
-      status: BackfillStatus.PENDING,
+      backfillJobsTotal: taskParams.length,
+      backfillJobsProcessed: 0,
+      backfillJobsSkipped: 0,
+      backfillJobsFailed: 0,
+      backfillStatus: BackfillStatus.PENDING,
     });
 
     const chunks = chunkArray(taskParams, batchSize);
@@ -70,6 +72,10 @@ export async function taskThreadTrigger<P>({
         functions.logger.info(`Enqueuing the first task ${taskId} 🚀`);
 
         await queue.enqueue({ taskId, chunk, tasksDoc });
+
+        await admin.firestore().doc(tasksDoc).update({
+          backfillStatus: BackfillStatus.RUNNING,
+        });
       }
 
       try {
@@ -91,7 +97,7 @@ export async function taskThreadTrigger<P>({
         if (runtime) {
           await runtime.setProcessingState(
             "PROCESSING_FAILED",
-            "Failed. for more details check the logs.",
+            "Failed. for more details check the logs."
           );
         }
 
@@ -105,7 +111,7 @@ export async function taskThreadTrigger<P>({
     if (runtime) {
       return runtime.setProcessingState(
         "PROCESSING_COMPLETE",
-        "Successfully enqueued all tasks to backfill the data.",
+        "Successfully enqueued all tasks to backfill the data."
       );
     }
   } catch (error) {
@@ -113,7 +119,7 @@ export async function taskThreadTrigger<P>({
     if (runtime) {
       await runtime.setProcessingState(
         "PROCESSING_FAILED",
-        "Failed. for more details check the logs.",
+        "Failed. for more details check the logs."
       );
     }
 

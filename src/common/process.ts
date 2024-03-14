@@ -31,8 +31,9 @@ export class Process {
   public readonly processFn: ProcessFunction;
   public readonly id: string;
   public readonly fieldDependencyArray: string[];
+  public readonly batchSize?: number;
   public readonly shouldBackfill?: ShouldBackfillFunction;
-  public readonly errorFn?: ErrorFunction;
+  public readonly errorFn: ErrorFunction;
   public readonly batchFn?: BatchFunction;
   public readonly shouldProcessFn?: ShouldOnWriteProcessFunction;
 
@@ -48,7 +49,11 @@ export class Process {
     this.id = id;
     this.fieldDependencyArray = fieldDependencyArray;
     this.shouldBackfill = shouldBackfill;
-    this.errorFn = errorFn;
+    if (errorFn) {
+      this.errorFn = errorFn;
+    } else {
+      this.errorFn = console.error;
+    }
     this.batchFn = batchFn ? async (data) => batchFn(data) : undefined;
     this.shouldProcessFn = shouldProcess;
     this.processFn = async (data) => processFn(data);
