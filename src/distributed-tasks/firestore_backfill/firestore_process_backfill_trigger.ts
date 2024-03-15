@@ -4,6 +4,7 @@ import * as admin from "firebase-admin";
 import { updateOrCreateMetadataDoc } from "./metadata_document";
 import { taskThreadTrigger } from "../trigger";
 import { FirestoreBackfillOptions } from "./types";
+import { getExtensions } from "firebase-admin/extensions";
 
 export const firestoreProcessBackfillTrigger = (
   process: Process,
@@ -22,6 +23,16 @@ export const firestoreProcessBackfillTrigger = (
     );
 
     if (!shouldBackfill) {
+      let runtime = options.extensionInstanceId
+        ? getExtensions().runtime()
+        : undefined;
+
+      if (runtime) {
+        return runtime.setProcessingState(
+          "NONE",
+          "Successfully enqueued all tasks to backfill the data."
+        );
+      }
       // logs.backfillNotRequired();
       return;
     }

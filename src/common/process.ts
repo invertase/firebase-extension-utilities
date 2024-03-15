@@ -5,6 +5,7 @@ interface ProcessOptions {
   fieldDependencyArray?: string[];
   shouldBackfill?: (data: Record<string, FirestoreField>) => boolean;
   errorFn?: (e: unknown) => string | void | Promise<string | void>;
+  batchSize?: number;
   batchFn?: (
     data: Record<string, FirestoreField>[]
   ) => Promise<Record<string, FirestoreField>[]>;
@@ -44,6 +45,7 @@ export class Process {
       shouldBackfill,
       errorFn,
       batchFn,
+      batchSize,
       shouldProcess,
     } = options;
     this.id = id;
@@ -55,6 +57,9 @@ export class Process {
       this.errorFn = console.error;
     }
     this.batchFn = batchFn ? async (data) => batchFn(data) : undefined;
+    if (batchSize) {
+      this.batchSize = batchSize;
+    }
     this.shouldProcessFn = shouldProcess;
     this.processFn = async (data) => processFn(data);
   }

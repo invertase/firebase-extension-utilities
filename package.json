@@ -1,7 +1,7 @@
 {
   "name": "@invertase/firebase-extension-utilities",
   "author": "Jacob Cable",
-  "version": "0.0.4",
+  "version": "0.0.7",
   "description": "Helper classes for building Firebase Extensions",
   "scope": "invertase",
   "main": "lib/index.js",
