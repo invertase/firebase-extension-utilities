@@ -23,7 +23,7 @@ export const getMetadataDoc = async (
     functions.logger.info(
       `No existing metadata doc found for ${metadata.collectionName} 📝`
     );
-    return null;
+    return metadataDoc;
   }
   return metadataDoc;
 };
@@ -54,24 +54,25 @@ export const updateMetadataDoc = async (
 
 export const updateOrCreateMetadataDoc = async (
   metadataDocumentPath: string,
-  shouldRunBackfill: (data: Record<string, FirestoreField>) => Promise<boolean>,
+  shouldRunBackfill: (
+    data?: Record<string, FirestoreField>
+  ) => Promise<boolean>,
   metadata: Metadata
 ) => {
   const metadataDoc = await getMetadataDoc(metadataDocumentPath, metadata);
 
-  let shouldBackfill = true;
+  if (!metadataDoc.exists) {
+    const doc = await createMetadataDoc(metadataDocumentPath, metadata);
 
-  if (metadataDoc) {
-    shouldBackfill = await shouldRunBackfill(metadataDoc.data() as Metadata);
-    if (shouldBackfill) {
-      await updateMetadataDoc(metadataDocumentPath, metadata);
-    }
-    return { path: metadataDoc.ref.path, shouldBackfill };
+    const shouldBackfill = await shouldRunBackfill();
+
+    return { path: doc.path, shouldBackfill };
   }
+  const currentMetadata = metadataDoc.data() as Metadata;
 
-  const doc = await createMetadataDoc(metadataDocumentPath, metadata);
+  const shouldBackfill = await shouldRunBackfill(currentMetadata);
 
-  shouldBackfill = shouldBackfill;
+  await updateMetadataDoc(metadataDocumentPath, metadata);
 
-  return { path: doc.path, shouldBackfill };
+  return { path: metadataDoc.ref.path, shouldBackfill };
 };

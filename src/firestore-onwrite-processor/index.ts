@@ -32,18 +32,19 @@ export class FirestoreOnWriteProcessor {
     const updateTime = now(); // Get the current time.
 
     // Determine the initial data for the update, focusing on order.
-    const startData = change.after.get(this.orderField);
-    let update: Record<string, FirestoreField> = startData
-      ? { [this.orderField]: startData }
-      : { [this.orderField]: change.after.createTime };
 
     // Update the document to reflect the processes being started.
+    let update = {};
     for (const process of processesToRun) {
+      const startData = change.after.get(
+        `${this.statusField}.${process.id}.${this.orderField}`
+      );
       update = {
         ...update,
         [`${this.statusField}.${process.id}`]: {
           state: State.PROCESSING,
           startTime: updateTime,
+          [this.orderField]: startData || change.after.createTime,
           updateTime,
         },
       };
