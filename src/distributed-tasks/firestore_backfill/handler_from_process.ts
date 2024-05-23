@@ -4,11 +4,12 @@ import { DocumentSnapshot } from "firebase-functions/v1/firestore";
 import { Process } from "../../common/process";
 import { chunkArray } from "../utils";
 import { FirestoreBackfillOptions } from "./types";
+import { FirestoreField } from "../../common/types";
 
 export const handlerFromProcess =
   (process: Process, options: FirestoreBackfillOptions) =>
   async (chunk: string[]) => {
-    //  get documents from firestore
+    // Get documents from firestore
     const docs = await getValidDocs(process, chunk, options);
 
     if (docs.length === 0) {
@@ -19,8 +20,15 @@ export const handlerFromProcess =
     functions.logger.info(`Handling ${docs.length} documents`);
 
     if (docs.length === 1) {
-      // TODO: get rid of ! assertion
-      const result = await process.processFn(docs[0].data()!);
+      const data = docs[0].data();
+      if (!data) {
+        functions.logger.warn(
+          `Document ${docs[0].ref.path} is missing data, skipping...`
+        );
+        return { success: 0 };
+      }
+
+      const result = await process.processFn(data);
 
       try {
         await admin
@@ -44,8 +52,20 @@ export const handlerFromProcess =
 
     const results = await Promise.all(
       batches.map(async (batch) => {
-        // TODO: get rid of ! assertion
-        return process.batchProcess(batch.map((doc) => doc.data()!));
+        const data: Record<string, FirestoreField>[] = [];
+
+        for (let doc of batch) {
+          const docData = doc.data();
+          if (!docData) {
+            functions.logger.warn(
+              `Document ${doc.ref.path} is missing data, skipping...`
+            );
+            continue;
+          }
+          data.push(docData);
+        }
+
+        return process.batchProcess(data);
       })
     );
 
@@ -65,9 +85,9 @@ export const handlerFromProcess =
     }
     await writer.commit();
 
-    functions.logger.info(`Completed processing ${docs.length} documents`);
+    functions.logger.info(`Completed processing ${toWrite.length} documents`);
 
-    return { success: docs.length };
+    return { success: toWrite.length };
   };
 
 export async function getValidDocs(
