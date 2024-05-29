@@ -8,7 +8,7 @@ import { FirestoreBackfillOptions } from "./types";
 export const handlerFromProcess =
   (process: Process, options: FirestoreBackfillOptions) =>
   async (chunk: string[]) => {
-    //  get documents from firestore
+    // Get documents from Firestore
     const docs = await getValidDocs(process, chunk, options);
 
     if (docs.length === 0) {
@@ -19,8 +19,16 @@ export const handlerFromProcess =
     functions.logger.info(`Handling ${docs.length} documents`);
 
     if (docs.length === 1) {
-      // TODO: get rid of ! assertion
-      const result = await process.processFn(docs[0].data()!);
+      const data = docs[0].data();
+
+      if (!data) {
+        functions.logger.error(
+          `Document ${docs[0].ref.path} does not have any data`
+        );
+        return { success: 0 };
+      }
+
+      const result = await process.processFn(data);
 
       try {
         await admin
@@ -41,11 +49,22 @@ export const handlerFromProcess =
     }
 
     const batches = chunkArray(docs, 50);
+    let successCount = 0;
 
     const results = await Promise.all(
       batches.map(async (batch) => {
-        // TODO: get rid of ! assertion
-        return process.batchProcess(batch.map((doc) => doc.data()!));
+        const batchData = batch
+          .map((doc) => {
+            const data = doc.data();
+            if (!data) {
+              functions.logger.warn(`Document ${doc.ref.path} has no data`);
+              return null;
+            }
+            return data;
+          })
+          .filter((data) => data !== null);
+
+        return process.batchProcess(batchData);
       })
     );
 
@@ -53,21 +72,27 @@ export const handlerFromProcess =
     const writer = admin.firestore().batch();
 
     for (let i = 0; i < toWrite.length; i++) {
-      writer.update(
-        admin.firestore().collection(options.collectionName).doc(docs[i].id),
-        {
-          ...toWrite[0],
-          [`status.${process.id}.state`]: "BACKFILLED",
-          [`status.${process.id}.completeTime`]:
-            admin.firestore.FieldValue.serverTimestamp(),
-        }
-      );
+      try {
+        writer.update(
+          admin.firestore().collection(options.collectionName).doc(docs[i].id),
+          {
+            ...toWrite[i],
+            [`status.${process.id}.state`]: "BACKFILLED",
+            [`status.${process.id}.completeTime`]:
+              admin.firestore.FieldValue.serverTimestamp(),
+          }
+        );
+        successCount++;
+      } catch (e) {
+        functions.logger.error(`Failed to update document ${docs[i].id}: ${e}`);
+      }
     }
+
     await writer.commit();
 
     functions.logger.info(`Completed processing ${docs.length} documents`);
 
-    return { success: docs.length };
+    return { success: successCount };
   };
 
 export async function getValidDocs(
@@ -78,24 +103,24 @@ export async function getValidDocs(
   const documents: DocumentSnapshot[] = [];
 
   await admin.firestore().runTransaction(async (transaction) => {
-    const refs = documentIds.map((id: string) =>
+    const refs = documentIds.map((id) =>
       admin.firestore().collection(options.collectionName).doc(id)
     );
-    //@ts-ignore
-    const docs = await transaction.getAll<DocumentData>(...refs);
+    const docs = await transaction.getAll(...refs);
 
     for (const doc of docs) {
       const data = doc.data();
-      if (!process.shouldBackfill || !process.shouldBackfill(data)) {
+      if (!data) {
+        functions.logger.warn(`Document ${doc.ref.path} has no data`);
+      } else if (!process.shouldBackfill || !process.shouldBackfill(data)) {
         functions.logger.warn(
           `Document ${doc.ref.path} is not valid for ${process.id} process`
         );
       } else if (
-        // TODO: add a param for backfill strategy
-        data["status"] &&
-        data["status"][process.id] &&
-        data["status"][process.id]["state"] &&
-        data["status"][process.id].state !== "BACKFILLED"
+        data.status &&
+        data.status[process.id] &&
+        data.status[process.id].state &&
+        data.status[process.id].state !== "BACKFILLED"
       ) {
         functions.logger.warn(
           `Document ${doc.ref.path} is not in the correct state to be backfilled`

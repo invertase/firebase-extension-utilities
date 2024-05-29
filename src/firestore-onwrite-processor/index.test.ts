@@ -27,7 +27,9 @@ type WrappedFirebaseFunction = WrappedFunction<
   Change<firestore.DocumentSnapshot | undefined>
 >;
 
-const firestoreObserver = jest.fn(() => {});
+const firestoreObserver = jest.fn((x) => {
+  console.debug("firestoreObserver", x);
+});
 let collectionName: string;
 
 const processFn = ({ input }: Record<string, FirestoreField>) => {
