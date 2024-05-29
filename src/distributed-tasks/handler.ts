@@ -56,8 +56,11 @@ export function taskThreadTaskHandler<P>(
     );
 
     const tasksDocSnap = await admin.firestore().doc(tasksDoc).get();
-    const { totalLength } = tasksDocSnap.data() as any;
-    let { processedLength } = tasksDocSnap.data() as any;
+    // TODO: validate this
+    const { totalLength } = tasksDocSnap.data() as { totalLength: number };
+    let { processedLength } = tasksDocSnap.data() as {
+      processedLength: number;
+    };
 
     processedLength += success;
 

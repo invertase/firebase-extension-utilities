@@ -11,14 +11,14 @@ export class FirestoreOnWriteProcessor {
   statusField: string;
   processes: Process[];
   orderField: string;
-  errorFn?: (e: unknown) => Promise<string | void>;
+  errorFn?: (e: unknown) => Promise<string> | Promise<void>;
 
   // Constructor to initialize the processor with custom options.
   constructor(options: {
     processes: Process[];
     statusField?: string;
     orderField?: string;
-    errorFn?: (e: unknown) => Promise<string | void>;
+    errorFn?: (e: unknown) => Promise<string> | Promise<void>;
   }) {
     // Set default values for optional parameters.
     this.orderField = options.orderField || "createTime";
@@ -139,8 +139,8 @@ export class FirestoreOnWriteProcessor {
     // Record the start of processing.
     await this.writeStartEvent(change, processesToRun);
 
-    let completedProcesses: Process[] = [];
-    let failedProcesses: Process[] = [];
+    const completedProcesses: Process[] = [];
+    const failedProcesses: Process[] = [];
     let finalOutput: Record<string, FirestoreField> = {};
 
     // Process each selected process.

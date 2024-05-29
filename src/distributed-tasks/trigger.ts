@@ -43,7 +43,7 @@ export async function taskThreadTrigger<P>({
   extensionInstanceId,
   taskParams,
 }: BackfillTrigger<P>) {
-  let runtime = extensionInstanceId ? getExtensions().runtime() : undefined;
+  const runtime = extensionInstanceId ? getExtensions().runtime() : undefined;
 
   const queue = getFunctions().taskQueue(queueName, extensionInstanceId);
 

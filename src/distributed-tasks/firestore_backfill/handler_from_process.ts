@@ -84,7 +84,7 @@ export async function getValidDocs(
     //@ts-ignore
     const docs = await transaction.getAll<DocumentData>(...refs);
 
-    for (let doc of docs) {
+    for (const doc of docs) {
       const data = doc.data();
       if (!process.shouldBackfill || !process.shouldBackfill(data)) {
         functions.logger.warn(
