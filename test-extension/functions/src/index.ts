@@ -18,7 +18,6 @@ const processFn = async ({ foo }: { foo: string }) => {
 
 const myProcess = new FirestoreOnWriteProcess(processFn, {
   id: "myProcess",
-  collectionName: "myCollection",
   fieldDependencyArray: ["foo"],
   shouldBackfill: (data) => data["foo"] && typeof data["foo"] === "string",
   batchFn: async (data) => {
@@ -28,13 +27,17 @@ const myProcess = new FirestoreOnWriteProcess(processFn, {
 
 //  backfill is simply exporting these two, the package handles everything else.
 // Note that only a single process is currently supported
+if (!process.env.EXT_INSTANCE_ID) {
+  throw new Error("EXT_INSTANCE_ID not set");
+}
 
 const backfillOptions: FirestoreBackfillOptions = {
+  collectionName: "myCollection",
   queueName: "backfillTask",
   metadataDocumentPath:
-    "backfills/myMetadataDocument_" + process.env.EXT_INSTANCE_ID!,
+    "backfills/myMetadataDocument_" + process.env.EXT_INSTANCE_ID,
   shouldDoBackfill: async () => true,
-  extensionInstanceId: process.env.EXT_INSTANCE_ID!,
+  extensionInstanceId: process.env.EXT_INSTANCE_ID,
 };
 
 export const backfillTrigger = functions.tasks

@@ -4,7 +4,7 @@ interface ProcessOptions {
   id: string;
   fieldDependencyArray?: string[];
   shouldBackfill?: (data: Record<string, FirestoreField>) => boolean;
-  errorFn?: (e: unknown) => string | void | Promise<string | void>;
+  errorFn?: (e: unknown) => string | undefined | Promise<string | undefined>;
   batchFn?: (
     data: Record<string, FirestoreField>[]
   ) => Promise<Record<string, FirestoreField>[]>;
@@ -18,7 +18,9 @@ type ProcessFunction = (
   data: Record<string, FirestoreField>
 ) => Record<string, FirestoreField> | Promise<Record<string, FirestoreField>>;
 type ShouldBackfillFunction = (data: Record<string, FirestoreField>) => boolean;
-type ErrorFunction = (e: unknown) => string | void | Promise<string | void>;
+type ErrorFunction = (
+  e: unknown
+) => string | undefined | Promise<string | undefined>;
 type BatchFunction = (
   data: Record<string, FirestoreField>[]
 ) => Promise<Record<string, FirestoreField>[]>;

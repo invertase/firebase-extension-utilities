@@ -12,6 +12,7 @@
     "clean": "rimraf lib",
     "compile": "tsc",
     "test": "jest --coverage",
+    "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,md,yml,ts,json,yaml}\"",
     "pack-into-test-extension": "npm run build && rimraf test-extension/functions/invertase-firebase-extension-utilities-*.tgz && npm pack --pack-destination test-extension/functions && cd test-extension/functions && npm install invertase-firebase-extension-utilities-*.tgz"
   },
@@ -23,6 +24,9 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node-fetch": "^2.6.11",
+    "@typescript-eslint/eslint-plugin": "^7.11.0",
+    "@typescript-eslint/parser": "^7.11.0",
+    "eslint": "^8.57.0",
     "firebase-functions-test": "^3.1.1",
     "jest": "^29.7.0",
     "node-fetch": "^2.7.0",
@@ -30,6 +34,7 @@
     "rimraf": "^5.0.5",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3",
+    "typescript-eslint": "^7.11.0",
     "wait-for-expect": "^3.0.2"
   }
 }

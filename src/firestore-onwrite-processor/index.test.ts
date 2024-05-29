@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import * as admin from "firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import * as firebaseFunctionsTest from "firebase-functions-test";
@@ -25,10 +27,14 @@ type WrappedFirebaseFunction = WrappedFunction<
   Change<firestore.DocumentSnapshot | undefined>
 >;
 
-const firestoreObserver = jest.fn((_x: any) => {});
+const firestoreObserver = jest.fn((x) => {
+  console.debug("firestoreObserver", x);
+});
 let collectionName: string;
 
 const processFn = ({ input }: Record<string, FirestoreField>) => {
+  console.debug("input", input);
+
   return { output: "foo" };
 };
 
@@ -63,8 +69,8 @@ describe("SingleFieldProcessor", () => {
     unsubscribe = admin
       .firestore()
       .collection(collectionName)
-      .onSnapshot((snap: any) => {
-        /** There is a bug on first init and write, causing the the emulator to the observer is called twice
+      .onSnapshot((snap: admin.firestore.QuerySnapshot) => {
+        /** There is a bug on first init and write, causing the emulator observer to be called twice
          * A snapshot is registered on the first run, this affects the observer count
          * This is a workaround to ensure the observer is only called when it should be
          */
@@ -81,6 +87,7 @@ describe("SingleFieldProcessor", () => {
 
   test("should do noop on empty dependency array", async () => {
     const processFn = ({ input }: Record<string, FirestoreField>) => {
+      console.debug("input", input);
       return { output: "foo" };
     };
     const process = new Process(processFn, {
@@ -94,7 +101,7 @@ describe("SingleFieldProcessor", () => {
 
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -113,6 +120,7 @@ describe("SingleFieldProcessor", () => {
 
   test("should do noop on should not process array", async () => {
     const processFn = ({ input }: Record<string, FirestoreField>) => {
+      console.debug("input", input);
       return { output: "foo" };
     };
     const process = new Process(processFn, {
@@ -127,7 +135,7 @@ describe("SingleFieldProcessor", () => {
 
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -153,7 +161,7 @@ describe("SingleFieldProcessor", () => {
   test("should run when not given order field", async () => {
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -209,7 +217,7 @@ describe("SingleFieldProcessor", () => {
   test("should run when given order field", async () => {
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -269,11 +277,13 @@ describe("SingleFieldProcessor", () => {
 
   test("should run multiple processes fine on same field", async () => {
     const firstProcessFn = ({ input }: Record<string, FirestoreField>) => {
+      console.debug("firstProcessFn input", input);
       return { firstOutput: "processed by first process" };
     };
 
     // Add a second process function
     const secondProcessFn = ({ input }: Record<string, FirestoreField>) => {
+      console.debug("secondProcessFn input", input);
       return { secondOutput: "processed by second process" };
     };
 
@@ -294,7 +304,7 @@ describe("SingleFieldProcessor", () => {
 
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -313,13 +323,9 @@ describe("SingleFieldProcessor", () => {
 
     // Expect the firestore observer to be called a specific number of times
 
-    const calls = firestoreObserver.mock.calls;
-
-    // TODO we should wait-for-expect here or something.
-
     expect(firestoreObserver).toHaveBeenCalledTimes(3);
 
-    // // Fetch the updated document and verify outputs of both processes
+    // Fetch the updated document and verify outputs of both processes
     const updatedDoc = await admin
       .firestore()
       .collection(collectionName)
@@ -337,18 +343,20 @@ describe("SingleFieldProcessor", () => {
       "processed by second process"
     ); // Output from the second process
 
-    // // Verify status updates for both processes
-    expect(updatedData!.status.test.state).toEqual("COMPLETED");
-    expect(updatedData!.status.secondTest.state).toEqual("COMPLETED");
+    // Verify status updates for both processes
+    expect(updatedData?.status.test.state).toEqual("COMPLETED");
+    expect(updatedData?.status.secondTest.state).toEqual("COMPLETED");
   });
 
   test("should run multiple processes on different field", async () => {
     const firstProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      console.debug("firstProcessFn input2", input2);
       return { firstOutput: "processed by first process" };
     };
 
     // Add a second process function
     const secondProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      console.debug("secondProcessFn input2", input2);
       return { secondOutput: "processed by second process" };
     };
 
@@ -369,7 +377,7 @@ describe("SingleFieldProcessor", () => {
 
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -389,13 +397,9 @@ describe("SingleFieldProcessor", () => {
 
     // Expect the firestore observer to be called a specific number of times
 
-    const calls = firestoreObserver.mock.calls;
-
-    // TODO we should wait-for-expect here or something.
-
     expect(firestoreObserver).toHaveBeenCalledTimes(3);
 
-    // // Fetch the updated document and verify outputs of both processes
+    // Fetch the updated document and verify outputs of both processes
     const updatedDoc = await admin
       .firestore()
       .collection(collectionName)
@@ -413,18 +417,20 @@ describe("SingleFieldProcessor", () => {
       "processed by second process"
     ); // Output from the second process
 
-    // // Verify status updates for both processes
-    expect(updatedData!.status.test.state).toEqual("COMPLETED");
-    expect(updatedData!.status.secondTest.state).toEqual("COMPLETED");
+    // Verify status updates for both processes
+    expect(updatedData?.status.test.state).toEqual("COMPLETED");
+    expect(updatedData?.status.secondTest.state).toEqual("COMPLETED");
   });
 
   test("should only run one process if only that field is present", async () => {
     const firstProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      console.debug("firstProcessFn input2", input2);
       return { firstOutput: "processed by first process" };
     };
 
     // Add a second process function
     const secondProcessFn = ({ input2 }: Record<string, FirestoreField>) => {
+      console.debug("secondProcessFn input2", input2);
       return { secondOutput: "processed by second process" };
     };
 
@@ -445,7 +451,7 @@ describe("SingleFieldProcessor", () => {
 
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -464,11 +470,9 @@ describe("SingleFieldProcessor", () => {
 
     // Expect the firestore observer to be called a specific number of times
 
-    // TODO we should wait-for-expect here or something.
-
     expect(firestoreObserver).toHaveBeenCalledTimes(3);
 
-    // // Fetch the updated document and verify outputs of both processes
+    // Fetch the updated document and verify outputs of both processes
     const updatedDoc = await admin
       .firestore()
       .collection(collectionName)
@@ -481,9 +485,9 @@ describe("SingleFieldProcessor", () => {
       "processed by first process"
     );
     expect(updatedData).not.toHaveProperty("secondOutput");
-    expect(updatedData!.status).not.toHaveProperty("secondTest");
-    // // Verify status updates for both processes
-    expect(updatedData!.status.test.state).toEqual("COMPLETED");
+    expect(updatedData?.status).not.toHaveProperty("secondTest");
+    // Verify status updates for both processes
+    expect(updatedData?.status.test.state).toEqual("COMPLETED");
   });
 
   test("should gracefully handle an errored process", async () => {
@@ -501,7 +505,7 @@ describe("SingleFieldProcessor", () => {
 
     const testFunction = firestore
       .document(`${collectionName}/${docId}`)
-      .onWrite(async (change, _context) => {
+      .onWrite(async (change) => {
         return await processor.run(change);
       });
 
@@ -523,6 +527,7 @@ describe("SingleFieldProcessor", () => {
       const processes = Array.from({ length: i }, (_, index) => {
         return new Process(
           (data) => {
+            console.debug("data", data);
             return { [`output_${index}`]: `processed by process ${index}` };
           },
           {
@@ -538,7 +543,7 @@ describe("SingleFieldProcessor", () => {
 
       const testFunction = firestore
         .document(`${collectionName}/${docId}`)
-        .onWrite(async (change, _context) => {
+        .onWrite(async (change) => {
           return await processor.run(change);
         });
 
@@ -547,7 +552,7 @@ describe("SingleFieldProcessor", () => {
       ) as WrappedFirebaseFunction;
 
       // Define data that triggers all processes
-      const data = {};
+      const data: { [key: string]: string } = {};
 
       for (let index = 0; index < i; index++) {
         data[`input_${index}`] = `test${index}`;
@@ -561,11 +566,9 @@ describe("SingleFieldProcessor", () => {
 
       // Expect the firestore observer to be called a specific number of times
 
-      // TODO we should wait-for-expect here or something.
-
       expect(firestoreObserver).toHaveBeenCalledTimes(3);
 
-      // // Fetch the updated document and verify outputs of all processes
+      // Fetch the updated document and verify outputs of all processes
       const updatedDoc = await admin
         .firestore()
         .collection(collectionName)
@@ -581,9 +584,9 @@ describe("SingleFieldProcessor", () => {
         );
       }
 
-      // // Verify status updates for all processes
+      // Verify status updates for all processes
       for (let index = 0; index < i; index++) {
-        expect(updatedData!.status[`test_${index}`].state).toEqual("COMPLETED");
+        expect(updatedData?.status[`test_${index}`].state).toEqual("COMPLETED");
       }
     });
   }

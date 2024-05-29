@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import * as admin from "firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import fetch from "node-fetch";
@@ -16,8 +18,9 @@ admin.initializeApp({
   projectId: "demo-gcp",
 });
 
-const firestoreObserver = jest.fn((_x: any) => {});
-let collectionName: string;
+const firestoreObserver = jest.fn((x: any) => {
+  console.debug("firestoreObserver", x);
+});
 
 describe("createMetadataDoc", () => {
   let unsubscribe: (() => void) | undefined;
@@ -182,8 +185,8 @@ describe("getMetadataDoc", () => {
     const metadataDoc = await getMetadataDoc(metadataDocumentPath, metadata);
 
     expect(metadataDoc).not.toBeNull();
-    expect(metadataDoc!.exists).toBeTruthy();
-    expect(metadataDoc!.data()).toEqual(metadata);
+    expect(metadataDoc?.exists).toBeTruthy();
+    expect(metadataDoc?.data()).toEqual(metadata);
   });
 
   test("should return null if metadata doc does not exist", async () => {

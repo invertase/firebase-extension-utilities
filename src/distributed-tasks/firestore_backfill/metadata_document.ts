@@ -71,7 +71,5 @@ export const updateOrCreateMetadataDoc = async (
 
   const doc = await createMetadataDoc(metadataDocumentPath, metadata);
 
-  shouldBackfill = shouldBackfill;
-
   return { path: doc.path, shouldBackfill };
 };

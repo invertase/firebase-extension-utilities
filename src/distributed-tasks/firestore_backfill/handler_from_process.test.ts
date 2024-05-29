@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import * as admin from "firebase-admin";
 import { Process } from "../../common/process";
 import { getValidDocs } from "./handler_from_process";
@@ -10,7 +12,9 @@ admin.initializeApp({
   projectId: "demo-gcp",
 });
 
-const firestoreObserver = jest.fn((_x: any) => {});
+const firestoreObserver = jest.fn((x: any) => {
+  console.debug("firestoreObserver", x);
+});
 
 describe.skip("getValidDocs", () => {
   let unsubscribe: (() => void) | undefined;
@@ -55,7 +59,10 @@ describe.skip("getValidDocs", () => {
 
     const process = new Process((data) => data, {
       id: "testProcess",
-      shouldBackfill: (data) => true,
+      shouldBackfill: (data) => {
+        console.debug("shouldBackfill", data);
+        return true;
+      },
     });
 
     const documentIds = ["doc1", "doc2", "doc3"];
