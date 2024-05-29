@@ -91,7 +91,7 @@ export async function taskThreadTrigger<P>({
         if (runtime) {
           await runtime.setProcessingState(
             "PROCESSING_FAILED",
-            "Failed. for more details check the logs.",
+            "Failed. for more details check the logs."
           );
         }
 
@@ -105,7 +105,7 @@ export async function taskThreadTrigger<P>({
     if (runtime) {
       return runtime.setProcessingState(
         "PROCESSING_COMPLETE",
-        "Successfully enqueued all tasks to backfill the data.",
+        "Successfully enqueued all tasks to backfill the data."
       );
     }
   } catch (error) {
@@ -113,7 +113,7 @@ export async function taskThreadTrigger<P>({
     if (runtime) {
       await runtime.setProcessingState(
         "PROCESSING_FAILED",
-        "Failed. for more details check the logs.",
+        "Failed. for more details check the logs."
       );
     }
 

@@ -40,7 +40,8 @@ billingRequired: true
 
 roles:
   - role: datastore.user
-    reason: Test extension for distributed tasks with Cloud Tasks and Cloud Firestore.
+    reason:
+      Test extension for distributed tasks with Cloud Tasks and Cloud Firestore.
 
 resources:
   - name: backfillTrigger
