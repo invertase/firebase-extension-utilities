@@ -31,16 +31,12 @@ export const handlerFromProcess =
       const result = await process.processFn(data);
 
       try {
-        await admin
-          .firestore()
-          .collection(options.collectionName)
-          .doc(chunk[0])
-          .update({
-            ...result,
-            [`status.${process.id}.state`]: "BACKFILLED",
-            [`status.${process.id}.completeTime`]:
-              admin.firestore.FieldValue.serverTimestamp(),
-          });
+        await docs[0].ref.update({
+          ...result,
+          [`status.${process.id}.state`]: "BACKFILLED",
+          [`status.${process.id}.completeTime`]:
+            admin.firestore.FieldValue.serverTimestamp(),
+        });
         return { success: 1 };
       } catch (e) {
         functions.logger.error(e);
@@ -73,15 +69,12 @@ export const handlerFromProcess =
 
     for (let i = 0; i < toWrite.length; i++) {
       try {
-        writer.update(
-          admin.firestore().collection(options.collectionName).doc(docs[i].id),
-          {
-            ...toWrite[i],
-            [`status.${process.id}.state`]: "BACKFILLED",
-            [`status.${process.id}.completeTime`]:
-              admin.firestore.FieldValue.serverTimestamp(),
-          }
-        );
+        writer.update(docs[i].ref, {
+          ...toWrite[i],
+          [`status.${process.id}.state`]: "BACKFILLED",
+          [`status.${process.id}.completeTime`]:
+            admin.firestore.FieldValue.serverTimestamp(),
+        });
         successCount++;
       } catch (e) {
         functions.logger.error(`Failed to update document ${docs[i].id}: ${e}`);
@@ -103,33 +96,60 @@ export async function getValidDocs(
   const documents: DocumentSnapshot[] = [];
 
   await admin.firestore().runTransaction(async (transaction) => {
-    const refs = documentIds.map((id) =>
-      admin.firestore().collection(options.collectionName).doc(id)
-    );
-    const docs = await transaction.getAll(...refs);
+    if (options.useCollectionGroupQuery) {
+      const collectionGroup = admin
+        .firestore()
+        .collectionGroup(options.collectionName);
+      const snapshots = await Promise.all(
+        documentIds.map((id) =>
+          collectionGroup
+            .where(admin.firestore.FieldPath.documentId(), "==", id)
+            .get()
+        )
+      );
 
-    for (const doc of docs) {
-      const data = doc.data();
-      if (!data) {
-        functions.logger.warn(`Document ${doc.ref.path} has no data`);
-      } else if (!process.shouldBackfill || !process.shouldBackfill(data)) {
-        functions.logger.warn(
-          `Document ${doc.ref.path} is not valid for ${process.id} process`
-        );
-      } else if (
-        data.status &&
-        data.status[process.id] &&
-        data.status[process.id].state &&
-        data.status[process.id].state !== "BACKFILLED"
-      ) {
-        functions.logger.warn(
-          `Document ${doc.ref.path} is not in the correct state to be backfilled`
-        );
-      } else {
-        documents.push(doc);
-      }
+      snapshots.forEach((snapshot) => {
+        snapshot.forEach((doc) => {
+          addValidDoc(doc, process, documents);
+        });
+      });
+    } else {
+      const refs = documentIds.map((id) =>
+        admin.firestore().collection(options.collectionName).doc(id)
+      );
+      const docs = await transaction.getAll(...refs);
+
+      docs.forEach((doc) => {
+        addValidDoc(doc, process, documents);
+      });
     }
   });
 
   return documents;
+}
+
+function addValidDoc(
+  doc: DocumentSnapshot,
+  process: Process,
+  documents: DocumentSnapshot[]
+) {
+  const data = doc.data();
+  if (!data) {
+    functions.logger.warn(`Document ${doc.ref.path} has no data`);
+  } else if (!process.shouldBackfill || !process.shouldBackfill(data)) {
+    functions.logger.warn(
+      `Document ${doc.ref.path} is not valid for ${process.id} process`
+    );
+  } else if (
+    data.status &&
+    data.status[process.id] &&
+    data.status[process.id].state &&
+    data.status[process.id].state !== "BACKFILLED"
+  ) {
+    functions.logger.warn(
+      `Document ${doc.ref.path} is not in the correct state to be backfilled`
+    );
+  } else {
+    documents.push(doc);
+  }
 }
