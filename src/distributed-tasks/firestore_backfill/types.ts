@@ -6,6 +6,7 @@ export interface FirestoreBackfillOptions {
   queueName: string;
   metadataDocumentPath: string;
   collectionName: string;
+  setupFn?: () => Promise<void>;
   // TODO: remove any
   shouldDoBackfill: (data: Record<string, any>) => Promise<boolean>;
   extensionInstanceId?: string;

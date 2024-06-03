@@ -56,9 +56,12 @@ export function taskThreadTaskHandler<P>(
     );
 
     const tasksDocSnap = await admin.firestore().doc(tasksDoc).get();
+
+    console.log("tasksDocSnap", tasksDocSnap);
+
     // TODO: validate this
-    const { totalLength } = tasksDocSnap.data() as { totalLength: number };
-    let { processedLength } = tasksDocSnap.data() as {
+    let { totalLength, processedLength } = tasksDocSnap.data() as {
+      totalLength: number;
       processedLength: number;
     };
 
@@ -81,26 +84,24 @@ export function taskThreadTaskHandler<P>(
   };
 }
 
-async function _createNextTask(
+export async function _createNextTask(
   prevId: string,
   tasksDoc: string,
   queueName: string,
   extensionInstanceId?: string
 ) {
-  const taskNum = prevId.split("task")[1];
+  const taskNumMatch = prevId.match(/(\d+)$/);
+  const taskNum = taskNumMatch ? parseInt(taskNumMatch[0]) : 0;
   const nextId = extensionInstanceId
-    ? `ext-${extensionInstanceId}-task-${parseInt(taskNum) + 1}`
-    : `task-${parseInt(taskNum) + 1}`;
+    ? `ext-${extensionInstanceId}-task-${taskNum + 1}`
+    : `task-${taskNum + 1}`;
 
   functions.logger.info(`Enqueuing the next task ${nextId}`);
-
   const nextTask = await admin
     .firestore()
     .doc(`${tasksDoc}/enqueues/${nextId}`)
     .get();
-
   const queue = getFunctions().taskQueue(queueName, extensionInstanceId);
-
   await queue.enqueue({
     taskId: nextId,
     chunk: nextTask.data()?.chunk,

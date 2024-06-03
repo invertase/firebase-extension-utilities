@@ -6,6 +6,10 @@ import { FirestoreBackfillOptions } from "./types";
 
 export const firestoreBackfillTrigger = (options: FirestoreBackfillOptions) => {
   return async () => {
+    if (options.setupFn) {
+      await options.setupFn();
+    }
+
     const { path, shouldBackfill } = await updateOrCreateMetadataDoc(
       options.metadataDocumentPath,
       options.shouldDoBackfill,
