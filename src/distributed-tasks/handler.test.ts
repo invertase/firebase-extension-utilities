@@ -1,6 +1,4 @@
 import * as admin from "firebase-admin";
-import { getFunctions } from "firebase-admin/functions";
-import * as functions from "firebase-functions";
 import {
   _createNextTask,
   BackfillTask,
@@ -23,7 +21,8 @@ const mockFirestore = () => {
             data: () => mockDocGetData(),
           };
         },
-        update: mockUpdate,
+        // here we can check the path to see if we are updating the correct document
+        update: (data: any) => mockUpdate(data, path),
       };
     },
   };
@@ -178,11 +177,10 @@ describe("handler", () => {
         collectionName: "testCollection",
       };
 
-      const taskHandler = taskThreadTaskHandler(
-        handler,
+      const taskHandler = taskThreadTaskHandler(handler, {
         queueName,
-        extensionInstanceId
-      );
+        extensionInstanceId,
+      });
 
       mockDocGetData.mockReturnValueOnce({
         totalLength: 5,
@@ -194,8 +192,6 @@ describe("handler", () => {
       expect(mockLoggerInfo).toHaveBeenCalledWith("Handling task task-1");
       expect(mockLoggerInfo).toHaveBeenCalledWith("Handling 5 documents");
       expect(mockDoc).toHaveBeenCalledWith("testTasksDoc/enqueues/task-1");
-
-      expect(mockUpdate).toHaveBeenCalledWith({ status: "PROCESSING" });
       expect(handler).toHaveBeenCalledWith(backfillTaskData.chunk);
       expect(mockLoggerInfo).toHaveBeenCalledWith(
         "Task task-1 completed with 5 success(es)"
@@ -204,16 +200,37 @@ describe("handler", () => {
       expect(mockIncrement).toHaveBeenCalledWith(5);
 
       const callsToUpdate = mockUpdate.mock.calls;
-      expect(callsToUpdate.length).toBe(3);
-      expect(callsToUpdate[0][0]).toEqual({
-        status: "PROCESSING",
-      });
-      expect(callsToUpdate[1][0]).toEqual({
-        processedLength: 5,
-      });
-      expect(callsToUpdate[2][0]).toEqual({
-        status: "DONE",
-      });
+
+      console.log(JSON.stringify(callsToUpdate, null, 2));
+      expect(callsToUpdate.length).toBe(4);
+      // First update is for updating task status to PROCESSING
+      expect(callsToUpdate[0]).toEqual([
+        {
+          status: "PROCESSING",
+        },
+        "testTasksDoc/enqueues/task-1",
+      ]);
+      // Second update is for updating task status to DONE
+      expect(callsToUpdate[1]).toEqual([
+        {
+          status: "DONE",
+        },
+        "testTasksDoc/enqueues/task-1",
+      ]);
+      // Third update is for updating processedLength in tasks doc
+      expect(callsToUpdate[2]).toEqual([
+        {
+          processedLength: 5,
+        },
+        "testTasksDoc",
+      ]);
+      // Fourth and final update is for updating status in tasks doc
+      expect(callsToUpdate[3]).toEqual([
+        {
+          status: "DONE",
+        },
+        "testTasksDoc",
+      ]);
     });
 
     test("should skip processing if chunk is empty", async () => {
@@ -227,11 +244,10 @@ describe("handler", () => {
         collectionName: "testCollection",
       };
 
-      const taskHandler = taskThreadTaskHandler(
-        handler,
+      const taskHandler = taskThreadTaskHandler(handler, {
         queueName,
-        extensionInstanceId
-      );
+        extensionInstanceId,
+      });
 
       await taskHandler(backfillTaskData);
 

@@ -8,9 +8,8 @@ export const firestoreProcessBackfillTask = (
   options: FirestoreBackfillOptions
 ) => {
   const handler = handlerFromProcess(process, options);
-  return taskThreadTaskHandler(
-    handler,
-    options.queueName,
-    options.extensionInstanceId
-  );
+  return taskThreadTaskHandler(handler, {
+    queueName: options.queueName,
+    extensionInstanceId: options.extensionInstanceId,
+  });
 };

@@ -26,10 +26,15 @@ export interface BackfillTask<P> {
   chunk: P[];
 }
 
+interface BackfillHandlerOptions {
+  queueName: string;
+  extensionInstanceId?: string;
+  onComplete?: (total: number) => Promise<void>;
+}
+
 export function taskThreadTaskHandler<P>(
   handler: (chunk: P[]) => Promise<{ success: number }>,
-  queueName: string,
-  extensionInstanceId?: string
+  { queueName, extensionInstanceId, onComplete }: BackfillHandlerOptions
 ) {
   return async (data: BackfillTask<P>) => {
     // TODO: this needs to be matching what we send
@@ -55,9 +60,11 @@ export function taskThreadTaskHandler<P>(
       `Task ${taskId} completed with ${success} success(es)`
     );
 
-    const tasksDocSnap = await admin.firestore().doc(tasksDoc).get();
+    await taskRef.update({
+      status: "DONE",
+    });
 
-    console.log("tasksDocSnap", tasksDocSnap);
+    const tasksDocSnap = await admin.firestore().doc(tasksDoc).get();
 
     // TODO: validate this
     let { totalLength, processedLength } = tasksDocSnap.data() as {
@@ -78,6 +85,9 @@ export function taskThreadTaskHandler<P>(
       await admin.firestore().doc(tasksDoc).update({
         status: utils.BackfillStatus.DONE,
       });
+      if (onComplete) {
+        await onComplete(totalLength);
+      }
     } else {
       await _createNextTask(taskId, tasksDoc, queueName, extensionInstanceId);
     }
