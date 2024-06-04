@@ -11,6 +11,8 @@ import {
 } from "./metadata_document";
 import waitForExpect from "wait-for-expect";
 
+global.console.debug = jest.fn(); // silence console.debug
+
 process.env.GCLOUD_PROJECT = "demo-gcp";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 

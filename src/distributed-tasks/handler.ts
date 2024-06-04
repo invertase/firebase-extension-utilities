@@ -33,11 +33,10 @@ interface BackfillHandlerOptions {
 }
 
 export function taskThreadTaskHandler<P>(
-  handler: (chunk: P[]) => Promise<{ success: number }>,
+  handler: (chunk: P[]) => Promise<{ success: number; failed: number }>,
   { queueName, extensionInstanceId, onComplete }: BackfillHandlerOptions
 ) {
   return async (data: BackfillTask<P>) => {
-    // TODO: this needs to be matching what we send
     const { taskId, chunk, tasksDoc } = data;
 
     functions.logger.info(`Handling task ${taskId}`);
@@ -54,36 +53,59 @@ export function taskThreadTaskHandler<P>(
       status: "PROCESSING",
     });
 
-    const { success } = await handler(chunk);
+    let success = 0;
+    let failed = 0;
+
+    try {
+      const result = await handler(chunk);
+      success = result.success;
+      failed = result.failed;
+    } catch (error) {
+      functions.logger.error(`Error handling task ${taskId}: ${error}`);
+      failed = chunk.length; // Assuming the entire chunk failed if there's an error
+    }
 
     functions.logger.info(
-      `Task ${taskId} completed with ${success} success(es)`
+      `Task ${taskId} completed with ${success} success(es) and ${failed} failure(s)`
     );
 
     await taskRef.update({
       status: "DONE",
+      success,
+      failed,
     });
 
     const tasksDocSnap = await admin.firestore().doc(tasksDoc).get();
 
-    // TODO: validate this
-    let { totalLength, processedLength } = tasksDocSnap.data() as {
-      totalLength: number;
-      processedLength: number;
-    };
+    let { totalLength, processedLength, failedLength } =
+      tasksDocSnap.data() as {
+        totalLength: number;
+        processedLength: number;
+        failedLength: number;
+      };
 
     processedLength += success;
+    failedLength += failed;
 
     await admin
       .firestore()
       .doc(tasksDoc)
       .update({
         processedLength: admin.firestore.FieldValue.increment(success),
+        failedLength: admin.firestore.FieldValue.increment(failed),
       });
 
-    if (processedLength === totalLength) {
+    console.log(
+      `processedLength: ${processedLength}, failedLength: ${failedLength}, totalLength: ${totalLength}`
+    );
+
+    if (processedLength + failedLength === totalLength) {
+      const status =
+        failedLength > 0
+          ? utils.BackfillStatus.FAILED
+          : utils.BackfillStatus.DONE;
       await admin.firestore().doc(tasksDoc).update({
-        status: utils.BackfillStatus.DONE,
+        status,
       });
       if (onComplete) {
         await onComplete(totalLength);

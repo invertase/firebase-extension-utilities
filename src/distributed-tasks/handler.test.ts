@@ -167,7 +167,7 @@ describe("handler", () => {
     });
 
     test("should process chunk and update task status to DONE if all documents are processed", async () => {
-      const handler = jest.fn().mockResolvedValue({ success: 5 });
+      const handler = jest.fn().mockResolvedValue({ success: 5, failed: 0 });
       const queueName = "testQueue";
       const extensionInstanceId = "testExtensionId";
       const backfillTaskData: BackfillTask<string> = {
@@ -185,6 +185,7 @@ describe("handler", () => {
       mockDocGetData.mockReturnValueOnce({
         totalLength: 5,
         processedLength: 0,
+        failedLength: 0,
       });
 
       await taskHandler(backfillTaskData);
@@ -193,15 +194,18 @@ describe("handler", () => {
       expect(mockLoggerInfo).toHaveBeenCalledWith("Handling 5 documents");
       expect(mockDoc).toHaveBeenCalledWith("testTasksDoc/enqueues/task-1");
       expect(handler).toHaveBeenCalledWith(backfillTaskData.chunk);
-      expect(mockLoggerInfo).toHaveBeenCalledWith(
-        "Task task-1 completed with 5 success(es)"
-      );
+
+      const loggerInfoCalls = mockLoggerInfo.mock.calls;
+
+      expect(loggerInfoCalls[0]).toEqual(["Handling task task-1"]);
+      expect(loggerInfoCalls[1]).toEqual(["Handling 5 documents"]);
+      expect(loggerInfoCalls[2]).toEqual([
+        "Task task-1 completed with 5 success(es) and 0 failure(s)",
+      ]);
       expect(mockDoc).toHaveBeenCalledWith("testTasksDoc");
       expect(mockIncrement).toHaveBeenCalledWith(5);
 
       const callsToUpdate = mockUpdate.mock.calls;
-
-      console.log(JSON.stringify(callsToUpdate, null, 2));
       expect(callsToUpdate.length).toBe(4);
       // First update is for updating task status to PROCESSING
       expect(callsToUpdate[0]).toEqual([
@@ -213,13 +217,16 @@ describe("handler", () => {
       // Second update is for updating task status to DONE
       expect(callsToUpdate[1]).toEqual([
         {
+          failed: 0,
           status: "DONE",
+          success: 5,
         },
         "testTasksDoc/enqueues/task-1",
       ]);
       // Third update is for updating processedLength in tasks doc
       expect(callsToUpdate[2]).toEqual([
         {
+          failedLength: 0,
           processedLength: 5,
         },
         "testTasksDoc",

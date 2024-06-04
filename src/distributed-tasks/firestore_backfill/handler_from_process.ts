@@ -13,7 +13,7 @@ export const handlerFromProcess =
 
     if (docs.length === 0) {
       functions.logger.info("No data to handle, skipping...");
-      return { success: 0 };
+      return { success: 0, failed: 0 };
     }
 
     functions.logger.info(`Handling ${docs.length} documents`);
@@ -25,7 +25,7 @@ export const handlerFromProcess =
         functions.logger.error(
           `Document ${docs[0].ref.path} does not have any data`
         );
-        return { success: 0 };
+        return { success: 0, failed: 1 };
       }
 
       const result = await process.processFn(data);
@@ -37,15 +37,16 @@ export const handlerFromProcess =
           [`status.${process.id}.completeTime`]:
             admin.firestore.FieldValue.serverTimestamp(),
         });
-        return { success: 1 };
+        return { success: 1, failed: 0 };
       } catch (e) {
         functions.logger.error(e);
-        return { success: 0 };
+        return { success: 0, failed: 1 };
       }
     }
 
     const batches = chunkArray(docs, 50);
     let successCount = 0;
+    let failedCount = 0;
 
     const results = await Promise.all(
       batches.map(async (batch) => {
@@ -78,6 +79,7 @@ export const handlerFromProcess =
         successCount++;
       } catch (e) {
         functions.logger.error(`Failed to update document ${docs[i].id}: ${e}`);
+        failedCount++;
       }
     }
 
@@ -85,7 +87,7 @@ export const handlerFromProcess =
 
     functions.logger.info(`Completed processing ${docs.length} documents`);
 
-    return { success: successCount };
+    return { success: successCount, failed: failedCount };
   };
 
 export async function getValidDocs(
@@ -144,11 +146,9 @@ function addValidDoc(
     data.status &&
     data.status[process.id] &&
     data.status[process.id].state &&
-    data.status[process.id].state !== "BACKFILLED"
+    data.status[process.id].state === "BACKFILLED"
   ) {
-    functions.logger.warn(
-      `Document ${doc.ref.path} is not in the correct state to be backfilled`
-    );
+    functions.logger.warn(`Document ${doc.ref.path} is already backfilled`);
   } else {
     documents.push(doc);
   }

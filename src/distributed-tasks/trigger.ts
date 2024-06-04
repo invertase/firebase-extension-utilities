@@ -27,6 +27,7 @@ interface BackfillTrigger<P> {
   extensionInstanceId?: string;
   taskParams: P[];
 }
+
 /**
  * function to set up a cloud tasks thread
  * @param tasksDoc - the document to store the tasks status
@@ -55,6 +56,7 @@ export async function taskThreadTrigger<P>({
     await admin.firestore().doc(tasksDoc).set({
       totalLength: taskParams.length,
       processedLength: 0,
+      failedLength: 0, // Track the number of failed documents
       status: BackfillStatus.PENDING,
     });
 

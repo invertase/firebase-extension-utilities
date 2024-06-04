@@ -10,6 +10,8 @@ import { Process } from "../common/process";
 import fetch from "node-fetch";
 import { FirestoreField } from "./types";
 
+global.console.debug = jest.fn();
+
 const fft = firebaseFunctionsTest({
   projectId: "demo-gcp",
 });
