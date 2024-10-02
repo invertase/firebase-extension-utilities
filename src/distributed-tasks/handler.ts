@@ -105,16 +105,35 @@ export function taskThreadTaskHandler<P>(
   };
 }
 
+export async function getNextTaskId(
+  prevId: string,
+  extensionInstanceId?: string
+) {
+  const taskPattern = /^task-\d+$/;
+  const extTaskPattern = new RegExp(`^ext-${extensionInstanceId}-task-\\d+$`);
+
+  if (
+    !taskPattern.test(prevId) &&
+    (!extensionInstanceId || !extTaskPattern.test(prevId))
+  ) {
+    throw new Error(`Invalid task ID format: ${prevId}`);
+  }
+
+  const taskNum = prevId.split("task-")[1];
+  const nextId = extensionInstanceId
+    ? `ext-${extensionInstanceId}-task-${parseInt(taskNum) + 1}`
+    : `task-${parseInt(taskNum) + 1}`;
+
+  return nextId;
+}
+
 async function _createNextTask(
   prevId: string,
   tasksDoc: string,
   queueName: string,
   extensionInstanceId?: string
 ) {
-  const taskNum = prevId.split("task")[1];
-  const nextId = extensionInstanceId
-    ? `ext-${extensionInstanceId}-task-${parseInt(taskNum) + 1}`
-    : `task-${parseInt(taskNum) + 1}`;
+  const nextId = getNextTaskId(prevId, extensionInstanceId);
 
   functions.logger.info(`Enqueuing the next task ${nextId}`);
 
