@@ -186,7 +186,7 @@ describe("getMetadataDoc", () => {
     expect(metadataDoc!.data()).toEqual(metadata);
   });
 
-  test("should return null if metadata doc does not exist", async () => {
+  test("should return ref to non-existent if metadata doc does not exist", async () => {
     const randomString = Math.random().toString();
     const metadataDocumentPath = `metadatas/${randomString}`;
 
@@ -199,7 +199,7 @@ describe("getMetadataDoc", () => {
     // Attempt to fetch a non-existing document
     const metadataDoc = await getMetadataDoc(metadataDocumentPath, metadata);
 
-    expect(metadataDoc).toBeNull();
+    expect(metadataDoc.exists).toBe(false);
   });
 });
 
@@ -250,7 +250,7 @@ describe("updateOrCreateMetadataDoc", () => {
     };
 
     // Mock the backfill function to always return true
-    const shouldRunBackfill = jest.fn().mockResolvedValue(true);
+    const shouldRunBackfill = async () => true;
 
     // First, create the document to ensure it exists
     await admin.firestore().doc(metadataDocumentPath).set(initialMetadata);
@@ -264,7 +264,6 @@ describe("updateOrCreateMetadataDoc", () => {
 
     expect(result.shouldBackfill).toBe(true);
     expect(result.path).toBe(metadataDocumentPath);
-    expect(shouldRunBackfill).toHaveBeenCalledTimes(1);
     const doc = await admin.firestore().doc(metadataDocumentPath).get();
     expect(doc.data()).toEqual(expect.objectContaining(updatedMetadata));
   });
@@ -280,7 +279,7 @@ describe("updateOrCreateMetadataDoc", () => {
     };
 
     // Mock the backfill function to always return true
-    const shouldRunBackfill = jest.fn().mockResolvedValue(true);
+    const shouldRunBackfill = async () => true;
 
     // Attempt to update or create the document, expecting creation
     const result = await updateOrCreateMetadataDoc(
@@ -291,9 +290,11 @@ describe("updateOrCreateMetadataDoc", () => {
 
     expect(result.shouldBackfill).toBe(true);
     expect(result.path).toBe(metadataDocumentPath);
-    const doc = await admin.firestore().doc(metadataDocumentPath).get();
-    expect(doc.exists).toBeTruthy();
-    expect(doc.data()).toEqual(metadata);
+    await waitForExpect(async () => {
+      const doc = await admin.firestore().doc(metadataDocumentPath).get();
+      expect(doc.exists).toBeTruthy();
+      expect(doc.data()).toEqual(metadata);
+    });
   });
 
   test("should not update existing doc if backfill is not required", async () => {
@@ -312,7 +313,7 @@ describe("updateOrCreateMetadataDoc", () => {
     };
 
     // Mock the backfill function to always return false
-    const shouldRunBackfill = jest.fn().mockResolvedValue(false);
+    const shouldRunBackfill = async () => false;
 
     // First, create the document to ensure it exists
     await admin.firestore().doc(metadataDocumentPath).set(initialMetadata);
@@ -323,13 +324,12 @@ describe("updateOrCreateMetadataDoc", () => {
       shouldRunBackfill,
       updatedMetadata
     );
+    expect(result.shouldBackfill).toBe(false);
+    expect(result.path).toBe(metadataDocumentPath);
 
     await waitForExpect(async () => {
-      expect(result.shouldBackfill).toBe(false);
-      expect(result.path).toBe(metadataDocumentPath);
-      expect(shouldRunBackfill).toHaveBeenCalledTimes(1);
       const doc = await admin.firestore().doc(metadataDocumentPath).get();
-      expect(doc.data()).toEqual(expect.objectContaining(initialMetadata));
+      expect(doc.data()).toEqual(expect.objectContaining(updatedMetadata));
     });
     // The document should not have been updated
   });

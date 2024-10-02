@@ -7,4 +7,5 @@ export interface FirestoreBackfillOptions {
   shouldDoBackfill: (data: Record<string, any>) => Promise<boolean>;
   extensionInstanceId?: string;
   metadata?: Record<string, FirestoreField>;
+  statusField: string;
 }

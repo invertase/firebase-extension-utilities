@@ -27,9 +27,11 @@ export interface BackfillTask<P> {
 }
 
 export function taskThreadTaskHandler<P>(
-  handler: (chunk: P[]) => Promise<{ success: number }>,
+  handler: (
+    chunk: P[]
+  ) => Promise<{ success: number; failed: number; skipped: number }>,
   queueName: string,
-  extensionInstanceId?: string,
+  extensionInstanceId?: string
 ) {
   return async (data: BackfillTask<P>) => {
     // TODO: this needs to be matching what we send
@@ -49,28 +51,53 @@ export function taskThreadTaskHandler<P>(
       status: "PROCESSING",
     });
 
-    const { success } = await handler(chunk);
+    const { success, failed, skipped } = await handler(chunk);
+
+    await taskRef.update({
+      status: utils.BackfillStatus.DONE,
+    });
 
     functions.logger.info(
-      `Task ${taskId} completed with ${success} success(es)`,
+      `Task ${taskId} completed with ${success} success(es)`
     );
 
     const tasksDocSnap = await admin.firestore().doc(tasksDoc).get();
-    const { totalLength } = tasksDocSnap.data() as any;
-    let { processedLength } = tasksDocSnap.data() as any;
+    let {
+      backfillJobsTotal: totalTasks,
+      backfillJobsProcessed: processedTasks,
+      backfillJobsSkipped: skippedTasks,
+      backfillJobsFailed: failedTasks,
+    } = tasksDocSnap.data() as any;
 
-    processedLength += success;
+    //  check if null or undefined or not a number
+    if (
+      [totalTasks, processedTasks, skippedTasks, failedTasks].some(
+        (val) => val === null || val === undefined || typeof val !== "number"
+      )
+    ) {
+      throw new Error("Invalid task document");
+    }
+
+    processedTasks += success;
+    skippedTasks += skipped;
+    failedTasks += failed;
 
     await admin
       .firestore()
       .doc(tasksDoc)
       .update({
-        processedLength: admin.firestore.FieldValue.increment(success),
+        backfillJobsFailed: admin.firestore.FieldValue.increment(failed),
+        backfillJobsSkipped: admin.firestore.FieldValue.increment(skipped),
+        backfillJobsProcessed: admin.firestore.FieldValue.increment(success),
       });
 
-    if (processedLength === totalLength) {
+    functions.logger.info(
+      `Current state: ${processedTasks} processed, ${skippedTasks} skipped, ${failedTasks} failed out of ${totalTasks} total tasks`
+    );
+
+    if (processedTasks + skippedTasks + failedTasks === totalTasks) {
       await admin.firestore().doc(tasksDoc).update({
-        status: utils.BackfillStatus.DONE,
+        backfillStatus: utils.BackfillStatus.DONE,
       });
     } else {
       await _createNextTask(taskId, tasksDoc, queueName, extensionInstanceId);
@@ -82,7 +109,7 @@ async function _createNextTask(
   prevId: string,
   tasksDoc: string,
   queueName: string,
-  extensionInstanceId?: string,
+  extensionInstanceId?: string
 ) {
   const taskNum = prevId.split("task")[1];
   const nextId = extensionInstanceId

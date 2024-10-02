@@ -174,25 +174,26 @@ describe("SingleFieldProcessor", () => {
     expect(firestoreCallData[0]).toEqual({ input: "test" });
     expect(firestoreCallData[1]).toEqual({
       input: "test",
-      createTime: expect.any(Timestamp),
       status: {
         test: {
+          createTime: expect.any(Timestamp),
           state: "PROCESSING",
           startTime: expect.any(Timestamp),
           updateTime: expect.any(Timestamp),
         },
       },
     });
+    const createTime = firestoreCallData[1].status.test.createTime;
+
     expect(firestoreCallData[1].status.test.startTime).toEqual(
       firestoreCallData[1].status.test.updateTime
     );
-    const createTime = firestoreCallData[1].createTime;
     expect(firestoreCallData[2]).toEqual({
       input: "test",
       output: "foo",
-      createTime,
       status: {
         test: {
+          createTime,
           state: "COMPLETED",
           updateTime: expect.any(Timestamp),
           completeTime: expect.any(Timestamp),
@@ -200,7 +201,11 @@ describe("SingleFieldProcessor", () => {
         },
       },
     });
-    expect(firestoreCallData[2]).toHaveProperty("createTime", createTime);
+
+    expect(firestoreCallData[2]).toHaveProperty(
+      "status.test.createTime",
+      createTime
+    );
     expect(firestoreCallData[2].status.test.updateTime).toEqual(
       firestoreCallData[2].status.test.completeTime
     );
@@ -218,7 +223,11 @@ describe("SingleFieldProcessor", () => {
     const customCreateTime = new Date().toISOString();
     const data = {
       input: "test",
-      createTime: customCreateTime,
+      status: {
+        test: {
+          createTime: customCreateTime,
+        },
+      },
     };
 
     const ref = await admin.firestore().collection(collectionName).add(data);
@@ -232,14 +241,18 @@ describe("SingleFieldProcessor", () => {
 
     expect(firestoreCallData[0]).toEqual({
       input: "test",
-      createTime: customCreateTime,
+      status: {
+        test: {
+          createTime: customCreateTime,
+        },
+      },
     });
 
     expect(firestoreCallData[1]).toEqual({
       input: "test",
-      createTime: customCreateTime,
       status: {
         test: {
+          createTime: customCreateTime,
           state: "PROCESSING",
           startTime: expect.any(Timestamp),
           updateTime: expect.any(Timestamp),
@@ -252,9 +265,9 @@ describe("SingleFieldProcessor", () => {
     expect(firestoreCallData[2]).toEqual({
       input: "test",
       output: "foo",
-      createTime: customCreateTime,
       status: {
         test: {
+          createTime: customCreateTime,
           state: "COMPLETED",
           updateTime: expect.any(Timestamp),
           completeTime: expect.any(Timestamp),

@@ -60,6 +60,7 @@ describe.skip("getValidDocs", () => {
 
     const documentIds = ["doc1", "doc2", "doc3"];
     const options: FirestoreBackfillOptions = {
+      statusField: "status",
       queueName: "testQueue",
       collectionName: "testCollection",
       shouldDoBackfill: () => Promise.resolve(true),
