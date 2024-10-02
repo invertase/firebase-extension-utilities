@@ -68,11 +68,15 @@ export const updateOrCreateMetadataDoc = async (
 
     return { path: doc.path, shouldBackfill };
   }
+
   const currentMetadata = metadataDoc.data() as Metadata;
 
   const shouldBackfill = await shouldRunBackfill(currentMetadata);
 
-  await updateMetadataDoc(metadataDocumentPath, metadata);
+  // Only update if backfill is required
+  if (shouldBackfill) {
+    await updateMetadataDoc(metadataDocumentPath, metadata);
+  }
 
   return { path: metadataDoc.ref.path, shouldBackfill };
 };

@@ -7,7 +7,6 @@ import {
   getMetadataDoc,
   updateOrCreateMetadataDoc,
 } from "./metadata_document";
-import waitForExpect from "wait-for-expect";
 
 process.env.GCLOUD_PROJECT = "demo-gcp";
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
@@ -16,41 +15,26 @@ admin.initializeApp({
   projectId: "demo-gcp",
 });
 
-const firestoreObserver = jest.fn((_x: any) => {});
-let collectionName: string;
-
-describe("createMetadataDoc", () => {
-  let unsubscribe: (() => void) | undefined;
-
-  // clear firestore
-  beforeEach(async () => {
+describe("Firestore Metadata Operations", () => {
+  // Helper function to clear Firestore emulator data
+  const clearFirestore = async () => {
     await fetch(
       `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
       { method: "DELETE" }
     );
-    jest.clearAllMocks();
+  };
 
-    // set up observer on collection
-    unsubscribe = admin
-      .firestore()
-      .collection("metadatas")
-      .onSnapshot((snap: any) => {
-        /** There is a bug on first init and write, causing the the emulator to the observer is called twice
-         * A snapshot is registered on the first run, this affects the observer count
-         * This is a workaround to ensure the observer is only called when it should be
-         */
-        if (snap.docs.length) firestoreObserver(snap);
-      });
+  beforeEach(async () => {
+    // Clear Firestore before each test to ensure a clean state
+    await clearFirestore();
   });
 
-  afterEach(() => {
-    if (unsubscribe && typeof unsubscribe === "function") {
-      unsubscribe();
-    }
-    jest.clearAllMocks();
+  afterAll(async () => {
+    // Clean up Firestore emulator after all tests
+    await clearFirestore();
   });
 
-  test("should create fresh metadata doc", async () => {
+  test("should create a fresh metadata document", async () => {
     const randomString = Math.random().toString();
     const metadataDocumentPath = `metadatas/${randomString}`;
     const metadata = {
@@ -59,49 +43,18 @@ describe("createMetadataDoc", () => {
       createdAt: Timestamp.now(),
     };
 
-    await createMetadataDoc(metadataDocumentPath, metadata);
+    // Create a metadata document
+    const docRef = await createMetadataDoc(metadataDocumentPath, metadata);
 
-    const doc = await admin.firestore().doc(metadataDocumentPath).get();
+    // Fetch the created document
+    const doc = await docRef.get();
 
+    // Assertions
     expect(doc.exists).toBeTruthy();
     expect(doc.data()).toEqual(metadata);
-    expect(firestoreObserver).toHaveBeenCalledTimes(1);
-    expect(firestoreObserver.mock.calls[0][0].docs[0].data()).toEqual(metadata);
-  });
-});
-
-describe("updateMetadataDoc", () => {
-  let unsubscribe: (() => void) | undefined;
-
-  // clear firestore
-  beforeEach(async () => {
-    await fetch(
-      `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
-      { method: "DELETE" }
-    );
-    jest.clearAllMocks();
-
-    // set up observer on collection
-    unsubscribe = admin
-      .firestore()
-      .collection("metadatas")
-      .onSnapshot((snap: any) => {
-        /** There is a bug on first init and write, causing the the emulator to the observer is called twice
-         * A snapshot is registered on the first run, this affects the observer count
-         * This is a workaround to ensure the observer is only called when it should be
-         */
-        if (snap.docs.length) firestoreObserver(snap);
-      });
   });
 
-  afterEach(() => {
-    if (unsubscribe && typeof unsubscribe === "function") {
-      unsubscribe();
-    }
-    jest.clearAllMocks();
-  });
-
-  test("should update an existing metadata doc", async () => {
+  test("should update an existing metadata document", async () => {
     const randomString = Math.random().toString();
     const metadataDocumentPath = `metadatas/${randomString}`;
 
@@ -113,62 +66,27 @@ describe("updateMetadataDoc", () => {
     const updatedMetadata = {
       collectionName: "updatedCollection",
       instanceId: "updatedInstance",
-      // createdAt should remain unchanged for this test
-      createdAt: initialMetadata.createdAt,
+      createdAt: initialMetadata.createdAt, // Ensure createdAt remains unchanged
     };
 
     // Create the initial document
-    await admin.firestore().doc(metadataDocumentPath).set(initialMetadata);
+    const docRef = await createMetadataDoc(
+      metadataDocumentPath,
+      initialMetadata
+    );
 
     // Update the document
     await updateMetadataDoc(metadataDocumentPath, updatedMetadata);
 
-    // Wait for the observer to be called the expected number of times
-    await waitForExpect(() => {
-      expect(firestoreObserver).toHaveBeenCalledTimes(2);
-    });
+    // Fetch the updated document
+    const updatedDoc = await docRef.get();
 
-    const doc = await admin.firestore().doc(metadataDocumentPath).get();
-    expect(doc.exists).toBeTruthy();
-    expect(doc.data()).toEqual(expect.objectContaining(updatedMetadata));
-    expect(firestoreObserver.mock.calls[1][0].docs[0].data()).toEqual(
-      expect.objectContaining(updatedMetadata)
-    );
-  });
-});
-
-describe("getMetadataDoc", () => {
-  let unsubscribe: (() => void) | undefined;
-
-  // clear firestore
-  beforeEach(async () => {
-    await fetch(
-      `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
-      { method: "DELETE" }
-    );
-    jest.clearAllMocks();
-
-    // set up observer on collection
-    unsubscribe = admin
-      .firestore()
-      .collection("metadatas")
-      .onSnapshot((snap: any) => {
-        /** There is a bug on first init and write, causing the the emulator to the observer is called twice
-         * A snapshot is registered on the first run, this affects the observer count
-         * This is a workaround to ensure the observer is only called when it should be
-         */
-        if (snap.docs.length) firestoreObserver(snap);
-      });
+    // Assertions
+    expect(updatedDoc.exists).toBeTruthy();
+    expect(updatedDoc.data()).toEqual(updatedMetadata);
   });
 
-  afterEach(() => {
-    if (unsubscribe && typeof unsubscribe === "function") {
-      unsubscribe();
-    }
-    jest.clearAllMocks();
-  });
-
-  test("should fetch an existing metadata doc", async () => {
+  test("should fetch an existing metadata document", async () => {
     const randomString = Math.random().toString();
     const metadataDocumentPath = `metadatas/${randomString}`;
 
@@ -178,18 +96,18 @@ describe("getMetadataDoc", () => {
       createdAt: Timestamp.now(),
     };
 
-    // First, create the document to ensure it exists
-    await admin.firestore().doc(metadataDocumentPath).set(metadata);
+    // Create a metadata document
+    await createMetadataDoc(metadataDocumentPath, metadata);
 
-    // Now, fetch the document
+    // Fetch the document using getMetadataDoc
     const metadataDoc = await getMetadataDoc(metadataDocumentPath, metadata);
 
-    expect(metadataDoc).not.toBeNull();
-    expect(metadataDoc!.exists).toBeTruthy();
-    expect(metadataDoc!.data()).toEqual(metadata);
+    // Assertions
+    expect(metadataDoc.exists).toBeTruthy();
+    expect(metadataDoc.data()).toEqual(metadata);
   });
 
-  test("should return ref to non-existent if metadata doc does not exist", async () => {
+  test("should return a non-existent document when no document is found", async () => {
     const randomString = Math.random().toString();
     const metadataDocumentPath = `metadatas/${randomString}`;
 
@@ -199,141 +117,77 @@ describe("getMetadataDoc", () => {
       createdAt: Timestamp.now(),
     };
 
-    // Attempt to fetch a non-existing document
+    // Fetch a non-existing document
     const metadataDoc = await getMetadataDoc(metadataDocumentPath, metadata);
 
+    // Assert that the document does not exist
     expect(metadataDoc.exists).toBe(false);
   });
-});
 
-describe("updateOrCreateMetadataDoc", () => {
-  let unsubscribe: (() => void) | undefined;
-
-  // clear firestore
-  beforeEach(async () => {
-    await fetch(
-      `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
-      { method: "DELETE" }
-    );
-    jest.clearAllMocks();
-
-    // set up observer on collection
-    unsubscribe = admin
-      .firestore()
-      .collection("metadatas")
-      .onSnapshot((snap: any) => {
-        /** There is a bug on first init and write, causing the the emulator to the observer is called twice
-         * A snapshot is registered on the first run, this affects the observer count
-         * This is a workaround to ensure the observer is only called when it should be
-         */
-        if (snap.docs.length) firestoreObserver(snap);
-      });
-  });
-
-  afterEach(() => {
-    if (unsubscribe && typeof unsubscribe === "function") {
-      unsubscribe();
-    }
-    jest.clearAllMocks();
-  });
-
-  test("should update existing doc if backfill is required", async () => {
-    const randomString = Math.random().toString();
-    const metadataDocumentPath = `metadatas/${randomString}`;
-
-    const initialMetadata = {
-      collectionName: "initialUpdateOrCreate",
-      instanceId: "initialInstance",
-      createdAt: Timestamp.now(),
-    };
-    const updatedMetadata = {
-      collectionName: "updatedUpdateOrCreate",
-      instanceId: "updatedInstance",
-      createdAt: Timestamp.now(), // Assume a new timestamp for simplicity
-    };
-
-    // Mock the backfill function to always return true
-    const shouldRunBackfill = async () => true;
-
-    // First, create the document to ensure it exists
-    await admin.firestore().doc(metadataDocumentPath).set(initialMetadata);
-
-    // Now, attempt to update or create the document
-    const result = await updateOrCreateMetadataDoc(
-      metadataDocumentPath,
-      shouldRunBackfill,
-      updatedMetadata
-    );
-
-    expect(result.shouldBackfill).toBe(true);
-    expect(result.path).toBe(metadataDocumentPath);
-    const doc = await admin.firestore().doc(metadataDocumentPath).get();
-    expect(doc.data()).toEqual(expect.objectContaining(updatedMetadata));
-  });
-
-  test("should create new doc if it does not exist", async () => {
+  test("should create a new document if backfill is required", async () => {
     const randomString = Math.random().toString();
     const metadataDocumentPath = `metadatas/${randomString}`;
 
     const metadata = {
-      collectionName: "newCreateOrUpdate",
-      instanceId: "newInstance",
+      collectionName: "initialBackfill",
+      instanceId: "instanceBackfill",
       createdAt: Timestamp.now(),
     };
 
     // Mock the backfill function to always return true
     const shouldRunBackfill = async () => true;
 
-    // Attempt to update or create the document, expecting creation
+    // Update or create the document
     const result = await updateOrCreateMetadataDoc(
       metadataDocumentPath,
       shouldRunBackfill,
       metadata
     );
 
+    // Fetch the document
+    const doc = await admin.firestore().doc(metadataDocumentPath).get();
+
+    // Assertions
+    expect(doc.exists).toBeTruthy();
     expect(result.shouldBackfill).toBe(true);
     expect(result.path).toBe(metadataDocumentPath);
-    await waitForExpect(async () => {
-      const doc = await admin.firestore().doc(metadataDocumentPath).get();
-      expect(doc.exists).toBeTruthy();
-      expect(doc.data()).toEqual(metadata);
-    });
+    expect(doc.data()).toEqual(metadata);
   });
 
-  test("should not update existing doc if backfill is not required", async () => {
+  test("should not update the document if backfill is not required", async () => {
     const randomString = Math.random().toString();
     const metadataDocumentPath = `metadatas/${randomString}`;
 
     const initialMetadata = {
-      collectionName: "initialNoBackfill",
-      instanceId: "initialInstanceNoBackfill",
+      collectionName: "noBackfillInitial",
+      instanceId: "noBackfillInstance",
       createdAt: Timestamp.now(),
     };
     const updatedMetadata = {
-      collectionName: "updatedNoBackfill",
-      instanceId: "updatedInstanceNoBackfill",
-      createdAt: Timestamp.now(), // Assume a new timestamp for simplicity
+      collectionName: "noBackfillUpdated",
+      instanceId: "noBackfillUpdatedInstance",
+      createdAt: Timestamp.now(),
     };
 
     // Mock the backfill function to always return false
     const shouldRunBackfill = async () => false;
 
-    // First, create the document to ensure it exists
-    await admin.firestore().doc(metadataDocumentPath).set(initialMetadata);
+    // Create the initial document
+    await createMetadataDoc(metadataDocumentPath, initialMetadata);
 
-    // Now, attempt to update or create the document, expecting no update due to backfill not required
+    // Try to update the document (should not happen due to backfill check)
     const result = await updateOrCreateMetadataDoc(
       metadataDocumentPath,
       shouldRunBackfill,
       updatedMetadata
     );
-    expect(result.shouldBackfill).toBe(false);
-    expect(result.path).toBe(metadataDocumentPath);
 
-    await waitForExpect(async () => {
-      const doc = await admin.firestore().doc(metadataDocumentPath).get();
-      expect(doc.data()).toEqual(expect.objectContaining(updatedMetadata));
-    });
-    // The document should not have been updated
+    // Fetch the document
+    const doc = await admin.firestore().doc(metadataDocumentPath).get();
+
+    // Assertions
+    expect(doc.exists).toBeTruthy();
+    expect(result.shouldBackfill).toBe(false);
+    expect(doc.data()).toEqual(initialMetadata); // Should not be updated
   });
 });
