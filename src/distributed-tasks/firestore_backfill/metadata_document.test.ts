@@ -113,21 +113,24 @@ describe("updateMetadataDoc", () => {
     const updatedMetadata = {
       collectionName: "updatedCollection",
       instanceId: "updatedInstance",
-      // Assume createdAt remains unchanged in this scenario
+      // createdAt should remain unchanged for this test
       createdAt: initialMetadata.createdAt,
     };
 
-    // First, create the document to ensure it exists
+    // Create the initial document
     await admin.firestore().doc(metadataDocumentPath).set(initialMetadata);
 
-    // Now, update the document
+    // Update the document
     await updateMetadataDoc(metadataDocumentPath, updatedMetadata);
 
-    const doc = await admin.firestore().doc(metadataDocumentPath).get();
+    // Wait for the observer to be called the expected number of times
+    await waitForExpect(() => {
+      expect(firestoreObserver).toHaveBeenCalledTimes(2);
+    });
 
+    const doc = await admin.firestore().doc(metadataDocumentPath).get();
     expect(doc.exists).toBeTruthy();
     expect(doc.data()).toEqual(expect.objectContaining(updatedMetadata));
-    expect(firestoreObserver).toHaveBeenCalledTimes(2);
     expect(firestoreObserver.mock.calls[1][0].docs[0].data()).toEqual(
       expect.objectContaining(updatedMetadata)
     );
