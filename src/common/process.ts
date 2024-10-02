@@ -7,25 +7,25 @@ interface ProcessOptions {
   errorFn?: (e: unknown) => string | void | Promise<string | void>;
   batchSize?: number;
   batchFn?: (
-    data: Record<string, FirestoreField>[]
+    data: Record<string, FirestoreField>[],
   ) => Promise<Record<string, FirestoreField>[]>;
   shouldProcess?: (
     oldData: Record<string, FirestoreField>,
-    newData: Record<string, FirestoreField>
+    newData: Record<string, FirestoreField>,
   ) => boolean;
 }
 
 type ProcessFunction = (
-  data: Record<string, FirestoreField>
+  data: Record<string, FirestoreField>,
 ) => Record<string, FirestoreField> | Promise<Record<string, FirestoreField>>;
 type ShouldBackfillFunction = (data: Record<string, FirestoreField>) => boolean;
 type ErrorFunction = (e: unknown) => string | void | Promise<string | void>;
 type BatchFunction = (
-  data: Record<string, FirestoreField>[]
+  data: Record<string, FirestoreField>[],
 ) => Promise<Record<string, FirestoreField>[]>;
 type ShouldOnWriteProcessFunction = (
   oldData: Record<string, FirestoreField>,
-  newData: Record<string, FirestoreField>
+  newData: Record<string, FirestoreField>,
 ) => boolean;
 
 export class Process {
@@ -65,7 +65,7 @@ export class Process {
   }
 
   async batchProcess(
-    data: Record<string, FirestoreField>[]
+    data: Record<string, FirestoreField>[],
   ): Promise<Record<string, FirestoreField>[]> {
     if (this.batchFn) {
       return this.batchFn(data);
@@ -88,7 +88,7 @@ export class Process {
 
   shouldProcess(
     oldData: Record<string, FirestoreField>,
-    newData: Record<string, FirestoreField>
+    newData: Record<string, FirestoreField>,
   ): boolean {
     if (this.shouldProcessFn && !this.shouldProcessFn(oldData, newData)) {
       return false;

@@ -11,17 +11,17 @@ export type Metadata = {
 
 export const getMetadataDoc = async (
   metadataDocumentPath: string,
-  metadata: Metadata
+  metadata: Metadata,
 ) => {
   functions.logger.info(
-    `Fetching existing metadata doc for ${metadata.collectionName} 📝`
+    `Fetching existing metadata doc for ${metadata.collectionName} 📝`,
   );
 
   const metadataDoc = await admin.firestore().doc(metadataDocumentPath).get();
 
   if (!metadataDoc.exists) {
     functions.logger.info(
-      `No existing metadata doc found for ${metadata.collectionName} 📝`
+      `No existing metadata doc found for ${metadata.collectionName} 📝`,
     );
     return metadataDoc;
   }
@@ -30,7 +30,7 @@ export const getMetadataDoc = async (
 
 export const createMetadataDoc = async (
   metadataDocumentPath: string,
-  metadata: Metadata
+  metadata: Metadata,
 ) => {
   functions.logger.info("Creating a new metadata doc");
   const doc = admin.firestore().doc(metadataDocumentPath);
@@ -42,7 +42,7 @@ export const createMetadataDoc = async (
 
 export const updateMetadataDoc = async (
   metadataDocumentPath: string,
-  metadata: Metadata
+  metadata: Metadata,
 ) => {
   functions.logger.info("Updating existing metadata doc");
   const doc = admin.firestore().doc(metadataDocumentPath);
@@ -55,9 +55,9 @@ export const updateMetadataDoc = async (
 export const updateOrCreateMetadataDoc = async (
   metadataDocumentPath: string,
   shouldRunBackfill: (
-    data?: Record<string, FirestoreField>
+    data?: Record<string, FirestoreField>,
   ) => Promise<boolean>,
-  metadata: Metadata
+  metadata: Metadata,
 ) => {
   const metadataDoc = await getMetadataDoc(metadataDocumentPath, metadata);
 

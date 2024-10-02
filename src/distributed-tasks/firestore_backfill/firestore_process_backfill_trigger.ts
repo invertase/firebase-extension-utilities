@@ -8,7 +8,7 @@ import { getExtensions } from "firebase-admin/extensions";
 
 export const firestoreProcessBackfillTrigger = (
   process: Process,
-  options: FirestoreBackfillOptions
+  options: FirestoreBackfillOptions,
 ) => {
   return async () => {
     const { path, shouldBackfill } = await updateOrCreateMetadataDoc(
@@ -19,7 +19,7 @@ export const firestoreProcessBackfillTrigger = (
         instanceId: options.extensionInstanceId,
         createdAt: admin.firestore.Timestamp.now(),
         ...options.metadata,
-      }
+      },
     );
 
     if (!shouldBackfill) {
@@ -30,7 +30,7 @@ export const firestoreProcessBackfillTrigger = (
       if (runtime) {
         return runtime.setProcessingState(
           "NONE",
-          "Successfully enqueued all tasks to backfill the data."
+          "Successfully enqueued all tasks to backfill the data.",
         );
       }
       // logs.backfillNotRequired();
@@ -67,13 +67,13 @@ const getDocsForBackfilling = async (options: FirestoreBackfillOptions) => {
 
   if (refs.length === 0) {
     functions.logger.info(
-      `No documents found in the collection ${options.collectionName} 📚`
+      `No documents found in the collection ${options.collectionName} 📚`,
     );
     return [];
   }
 
   functions.logger.info(
-    `Found ${refs.length} documents in the collection ${options.collectionName} 📚`
+    `Found ${refs.length} documents in the collection ${options.collectionName} 📚`,
   );
   return refs;
 };

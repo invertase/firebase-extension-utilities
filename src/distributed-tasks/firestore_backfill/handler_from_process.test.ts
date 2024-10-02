@@ -19,7 +19,7 @@ describe.skip("getValidDocs", () => {
   beforeEach(async () => {
     await fetch(
       `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     jest.clearAllMocks();
 
