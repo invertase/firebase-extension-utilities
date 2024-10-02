@@ -20,7 +20,7 @@ describe("Firestore Metadata Operations", () => {
   const clearFirestore = async () => {
     await fetch(
       `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/demo-gcp/databases/(default)/documents`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
   };
 
@@ -72,7 +72,7 @@ describe("Firestore Metadata Operations", () => {
     // Create the initial document
     const docRef = await createMetadataDoc(
       metadataDocumentPath,
-      initialMetadata
+      initialMetadata,
     );
 
     // Update the document
@@ -141,7 +141,7 @@ describe("Firestore Metadata Operations", () => {
     const result = await updateOrCreateMetadataDoc(
       metadataDocumentPath,
       shouldRunBackfill,
-      metadata
+      metadata,
     );
 
     // Fetch the document
@@ -179,7 +179,7 @@ describe("Firestore Metadata Operations", () => {
     const result = await updateOrCreateMetadataDoc(
       metadataDocumentPath,
       shouldRunBackfill,
-      updatedMetadata
+      updatedMetadata,
     );
 
     // Fetch the document

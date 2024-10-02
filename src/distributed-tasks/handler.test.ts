@@ -21,7 +21,7 @@ describe("getNextTaskId", () => {
     const prevId = "invalid-task-format";
 
     await expect(getNextTaskId(prevId)).rejects.toThrow(
-      `Invalid task ID format: ${prevId}`
+      `Invalid task ID format: ${prevId}`,
     );
   });
 
@@ -29,7 +29,7 @@ describe("getNextTaskId", () => {
     const prevId = "ext-instance123-task-invalid";
 
     await expect(getNextTaskId(prevId, "instance123")).rejects.toThrow(
-      `Invalid task ID format: ${prevId}`
+      `Invalid task ID format: ${prevId}`,
     );
   });
 

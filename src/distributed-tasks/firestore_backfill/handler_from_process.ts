@@ -12,7 +12,7 @@ export const handlerFromProcess =
     const { validDocuments, skippedDocuments } = await getValidDocs(
       process,
       chunk,
-      options
+      options,
     );
 
     if (validDocuments.length === 0) {
@@ -27,7 +27,7 @@ export const handlerFromProcess =
         process,
         validDocuments[0],
         skippedDocuments,
-        options
+        options,
       );
     }
 
@@ -36,8 +36,8 @@ export const handlerFromProcess =
 
     const results = await Promise.allSettled(
       batches.map((batch) =>
-        process.batchProcess(batch.map((doc) => doc.data()))
-      )
+        process.batchProcess(batch.map((doc) => doc.data())),
+      ),
     );
 
     const writer = admin.firestore().batch();
@@ -58,7 +58,7 @@ export const handlerFromProcess =
         batch.forEach((doc) => {
           writer.update(
             admin.firestore().collection(options.collectionName).doc(doc.id),
-            updatePayload
+            updatePayload,
           );
         });
       } else {
@@ -72,7 +72,7 @@ export const handlerFromProcess =
 
           writer.update(
             admin.firestore().collection(options.collectionName).doc(doc.id),
-            updatePayload
+            updatePayload,
           );
         });
       }
@@ -93,14 +93,14 @@ export const handlerFromProcess =
 export async function getValidDocs(
   process: Process,
   documentIds: string[],
-  options: FirestoreBackfillOptions
+  options: FirestoreBackfillOptions,
 ) {
   const validDocuments: DocumentSnapshot[] = [];
   const skippedDocuments: DocumentSnapshot[] = [];
 
   await admin.firestore().runTransaction(async (transaction) => {
     const refs = documentIds.map((id: string) =>
-      admin.firestore().collection(options.collectionName).doc(id)
+      admin.firestore().collection(options.collectionName).doc(id),
     );
     //@ts-ignore
     const docs = await transaction.getAll<DocumentData>(...refs);
@@ -110,7 +110,7 @@ export async function getValidDocs(
       if (!process.shouldBackfill || !process.shouldBackfill(data)) {
         skippedDocuments.push(doc);
         functions.logger.warn(
-          `Document ${doc.ref.path} is not valid for ${process.id} process`
+          `Document ${doc.ref.path} is not valid for ${process.id} process`,
         );
       } else if (
         // TODO: add a param for backfill strategy
@@ -121,7 +121,7 @@ export async function getValidDocs(
       ) {
         skippedDocuments.push(doc);
         functions.logger.warn(
-          `Document ${doc.ref.path} is not in the correct state to be backfilled`
+          `Document ${doc.ref.path} is not in the correct state to be backfilled`,
         );
       } else {
         validDocuments.push(doc);
@@ -136,7 +136,7 @@ const handleSingleDocument = async (
   process: Process,
   document: DocumentSnapshot,
   skippedDocuments: DocumentSnapshot[],
-  options: FirestoreBackfillOptions
+  options: FirestoreBackfillOptions,
 ) => {
   try {
     const result = await process.processFn(document.data()!);

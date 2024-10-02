@@ -28,16 +28,18 @@ export interface BackfillTask<P> {
 
 export function taskThreadTaskHandler<P>(
   handler: (
-    chunk: P[]
+    chunk: P[],
   ) => Promise<{ success: number; failed: number; skipped: number }>,
   queueName: string,
-  extensionInstanceId?: string
+  extensionInstanceId?: string,
 ) {
   return async (data: BackfillTask<P>) => {
     // TODO: this needs to be matching what we send
     const { taskId, chunk, tasksDoc } = data;
 
-    functions.logger.info(`Handling task ${taskId}`);
+    // functions.logger.info(
+    //   `Handling task ${JSON.stringify(taskId)}, chunk ${JSON.stringify(chunk)}  chunk length ${chunk?.length},task doc ${tasksDoc}`
+    // );
 
     if (!chunk || chunk.length === 0) {
       functions.logger.info("No data to handle, skipping...");
@@ -58,7 +60,7 @@ export function taskThreadTaskHandler<P>(
     });
 
     functions.logger.info(
-      `Task ${taskId} completed with ${success} success(es)`
+      `Task ${taskId} completed with ${success} success(es)`,
     );
 
     const tasksDocSnap = await admin.firestore().doc(tasksDoc).get();
@@ -72,7 +74,7 @@ export function taskThreadTaskHandler<P>(
     //  check if null or undefined or not a number
     if (
       [totalTasks, processedTasks, skippedTasks, failedTasks].some(
-        (val) => val === null || val === undefined || typeof val !== "number"
+        (val) => val === null || val === undefined || typeof val !== "number",
       )
     ) {
       throw new Error("Invalid task document");
@@ -92,7 +94,7 @@ export function taskThreadTaskHandler<P>(
       });
 
     functions.logger.info(
-      `Current state: ${processedTasks} processed, ${skippedTasks} skipped, ${failedTasks} failed out of ${totalTasks} total tasks`
+      `Current state: ${processedTasks} processed, ${skippedTasks} skipped, ${failedTasks} failed out of ${totalTasks} total tasks`,
     );
 
     if (processedTasks + skippedTasks + failedTasks === totalTasks) {
@@ -105,10 +107,10 @@ export function taskThreadTaskHandler<P>(
   };
 }
 
-export async function getNextTaskId(
+export function getNextTaskId(
   prevId: string,
-  extensionInstanceId?: string
-) {
+  extensionInstanceId?: string,
+): string {
   const taskPattern = /^task-\d+$/;
   const extTaskPattern = new RegExp(`^ext-${extensionInstanceId}-task-\\d+$`);
 
@@ -131,22 +133,40 @@ async function _createNextTask(
   prevId: string,
   tasksDoc: string,
   queueName: string,
-  extensionInstanceId?: string
+  extensionInstanceId?: string,
 ) {
   const nextId = getNextTaskId(prevId, extensionInstanceId);
 
-  functions.logger.info(`Enqueuing the next task ${nextId}`);
+  if (!nextId) {
+    throw new Error("Generated task ID is undefined or invalid");
+  }
 
   const nextTask = await admin
     .firestore()
     .doc(`${tasksDoc}/enqueues/${nextId}`)
     .get();
 
+  if (!nextTask.exists) {
+    functions.logger.error(`Next task document ${nextId} not found.`);
+    throw new Error(`Next task document ${nextId} does not exist.`);
+  }
+
+  const nextTaskData = nextTask.data();
+
+  if (!nextTaskData?.chunk || nextTaskData.chunk.length === 0) {
+    functions.logger.error(
+      `Next task ${nextId} has an invalid or empty chunk.`,
+    );
+    throw new Error(`Next task ${nextId} does not have valid chunk data.`);
+  }
+
   const queue = getFunctions().taskQueue(queueName, extensionInstanceId);
 
   await queue.enqueue({
-    taskId: nextId,
-    chunk: nextTask.data()?.chunk,
+    taskId: nextId, // Ensure this is set correctly
+    chunk: nextTaskData.chunk,
     tasksDoc,
   });
+
+  functions.logger.info(`Successfully enqueued task ${nextId}`);
 }
