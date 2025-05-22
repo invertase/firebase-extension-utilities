@@ -10,3 +10,5 @@ export {
   firestoreProcessBackfillTrigger,
   FirestoreBackfillOptions,
 } from "./distributed-tasks";
+
+export { Logger } from "./logger/logger";
