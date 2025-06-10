@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import { Process } from "../../common/process";
 import * as admin from "firebase-admin";
 import { updateOrCreateMetadataDoc } from "./metadata_document";

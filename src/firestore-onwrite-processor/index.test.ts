@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 import { Timestamp } from "firebase-admin/firestore";
 import * as firebaseFunctionsTest from "firebase-functions-test";
 import { FirestoreOnWriteProcessor } from ".";
-import { Change, firestore } from "firebase-functions";
+import { Change, firestore } from "firebase-functions/v1";
 import { WrappedFunction } from "firebase-functions-test/lib/main";
 import { Process } from "../common/process";
 import fetch from "node-fetch";

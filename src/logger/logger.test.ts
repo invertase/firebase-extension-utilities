@@ -1,5 +1,5 @@
 import { Logger, LogLevel } from "./logger";
-import { logger as funcsLogger } from "firebase-functions";
+import { logger as funcsLogger } from "firebase-functions/v1";
 
 // Mock firebase-functions logger functions
 jest.mock("firebase-functions", () => ({
