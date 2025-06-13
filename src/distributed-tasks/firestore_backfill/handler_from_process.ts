@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import { DocumentSnapshot } from "firebase-functions/v1/firestore";
 import { Process } from "../../common/process";
 import { chunkArray } from "../utils";

@@ -1,4 +1,4 @@
-import { logger as funcsLogger } from "firebase-functions";
+import { logger as funcsLogger } from "firebase-functions/v1";
 
 export enum LogLevel {
   DEBUG = "debug", // Will log everything
