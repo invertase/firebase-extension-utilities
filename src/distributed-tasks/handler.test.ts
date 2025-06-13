@@ -17,18 +17,18 @@ describe("getNextTaskId", () => {
     expect(nextId).toBe("ext-instance123-task-8");
   });
 
-  test("should throw an error for invalid task ID format", async () => {
+  test("should throw an error for invalid task ID format", () => {
     const prevId = "invalid-task-format";
 
-    await expect(getNextTaskId(prevId)).rejects.toThrow(
+    expect(() => getNextTaskId(prevId)).toThrow(
       `Invalid task ID format: ${prevId}`,
     );
   });
 
-  test("should throw an error for invalid ext-task format", async () => {
+  test("should throw an error for invalid ext-task format", () => {
     const prevId = "ext-instance123-task-invalid";
 
-    await expect(getNextTaskId(prevId, "instance123")).rejects.toThrow(
+    expect(() => getNextTaskId(prevId, "instance123")).toThrow(
       `Invalid task ID format: ${prevId}`,
     );
   });
