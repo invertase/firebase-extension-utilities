@@ -12,7 +12,7 @@
     "clean": "rimraf lib",
     "compile": "tsc",
     "test": "jest --coverage --runInBand",
-    "test:emulator": "concurrently -k -s first -n \"EMULATOR,TEST\" -c \"yellow.bold,green.bold\" \"cd _emulator && firebase emulators:start --only firestore\" \"wait-on tcp:8080 && npm run test -- --silent\"",
+    "test:emulator": "cd _emulator && firebase emulators:exec --project=demo-project \"cd .. && npm run test\"",
     "format": "prettier --write \"**/*.{js,md,yml,ts,json,yaml}\"",
     "pack-into-test-extension": "npm run build && rimraf test-extension/functions/invertase-firebase-extension-utilities-*.tgz && npm pack --pack-destination test-extension/functions && cd test-extension/functions && npm install invertase-firebase-extension-utilities-*.tgz"
   },
